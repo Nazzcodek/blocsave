@@ -64,17 +64,21 @@ const BalanceSummary = () => {
   };
 
   const handleWithdrawWallet = () => {
-    dispatch(openModal({
-      modalType: "WITHDRAW_WALLET",
-      modalProps: { source: "bank" }
-    }));
+    dispatch(
+      openModal({
+        modalType: "WITHDRAW_WALLET",
+        modalProps: { source: "bank" },
+      })
+    );
   };
 
   const handleWithdrawSavings = () => {
-    dispatch(openModal({
-      modalType: "WITHDRAW_SAVINGS", 
-      modalProps: { source: "savings" }
-    }));
+    dispatch(
+      openModal({
+        modalType: "WITHDRAW_SAVINGS",
+        modalProps: { source: "savings" },
+      })
+    );
   };
 
   return (

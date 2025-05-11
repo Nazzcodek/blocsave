@@ -119,7 +119,7 @@ const Layout = ({ children }) => {
           {children}
         </main>
       </div>
-      
+
       {/* Global Modal Controllers */}
       <ModalController />
       <FundWalletModalController />

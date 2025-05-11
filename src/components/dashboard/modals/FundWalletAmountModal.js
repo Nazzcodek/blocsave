@@ -18,9 +18,9 @@ const FundWalletAmountModal = ({ isOpen, onClose, onConfirm, source }) => {
     if (!amount || parseFloat(amount) <= 0) {
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     // Simulate API call with a timeout
     setTimeout(() => {
       setIsLoading(false);
@@ -48,11 +48,7 @@ const FundWalletAmountModal = ({ isOpen, onClose, onConfirm, source }) => {
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={handleClose}
-      title={getSourceTitle()}
-    >
+    <Modal isOpen={isOpen} onClose={handleClose} title={getSourceTitle()}>
       <div className="py-4">
         <label className="block text-sm text-gray-600 mb-2">
           Amount (USDC)
@@ -68,18 +64,14 @@ const FundWalletAmountModal = ({ isOpen, onClose, onConfirm, source }) => {
             autoFocus
           />
         </div>
-        
+
         <div className="flex gap-3 mt-6">
-          <Button 
-            variant="outline" 
-            onClick={handleClose} 
-            className="flex-1"
-          >
+          <Button variant="outline" onClick={handleClose} className="flex-1">
             Cancel
           </Button>
-          <Button 
-            variant="primary" 
-            onClick={handleConfirm} 
+          <Button
+            variant="primary"
+            onClick={handleConfirm}
             disabled={!amount || parseFloat(amount) <= 0 || isLoading}
             className="flex-1"
             isLoading={isLoading}
