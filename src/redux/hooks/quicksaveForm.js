@@ -11,6 +11,7 @@ import { validateAmount } from "../../utils/validators";
 const useQuicksaveForm = ({ maxAmount = 0 }) => {
   const [amount, setAmount] = useState("");
   const [error, setError] = useState("");
+   const [txHash, setTxHash] = useState("");
   const { activeTab } = useSelector((state) => state.quicksave);
 
   // Reset form when tab changes
@@ -53,6 +54,7 @@ const useQuicksaveForm = ({ maxAmount = 0 }) => {
     handleAmountChange,
     handleMaxAmount,
     setError,
+    setTxHash
   };
 };
 

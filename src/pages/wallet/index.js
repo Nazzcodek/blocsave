@@ -2,8 +2,27 @@ import React from "react";
 import { ConnectAndSIWE } from "@/components/wallet/ConnectAndSIWE";
 import Card from "@/components/common/Card";
 import SmartWalletBalance from "@/components/wallet/SmartWalletBalance";
+import { usePrivy } from '@privy-io/react-auth';
 
 const WalletPage = () => {
+  const { authenticated, login, ready } = usePrivy();
+    if (!ready) {
+    return <div className="p-6">Loading...</div>;
+  }
+
+  if (!authenticated){
+    return (
+       <div className="p-6">
+        <h2 className="text-xl font-semibold mb-4">Sign in to continue</h2>
+        <button
+          onClick={login}
+          className="bg-blue-600 text-white px-4 py-2 rounded"
+        >
+          Sign in with Email or Wallet
+        </button>
+      </div>
+    );
+  }
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">Connect Your Smart Wallet</h1>

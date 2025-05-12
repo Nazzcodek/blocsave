@@ -5,32 +5,62 @@ import {
   withdrawFromQuicksave,
 } from "../../redux/slices/quicksaveSlice";
 import { openModal } from "../../redux/slices/modalSlice";
+import { quickSave } from "@/services/blockchain/useCreateQuickSave";
+import { useWallets } from "@privy-io/react-auth";
 
 import useQuicksaveForm from "../../redux/hooks/quicksaveForm";
 
 const QuicksaveForm = ({ balance }) => {
+  // Use custom hook with appropriate max amount based on active tab
   const dispatch = useDispatch();
   const { activeTab, walletBalance, isSubmitting } = useSelector(
     (state) => state.quicksave
   );
-
-  // Use custom hook with appropriate max amount based on active tab
   const maxAmount = activeTab === "save" ? walletBalance : balance;
-  const { amount, error, isValid, handleAmountChange, handleMaxAmount } =
+  const { amount, error, isValid, handleAmountChange, handleMaxAmount, setError, setTxHash } =
     useQuicksaveForm({
       maxAmount,
     });
 
+  const { wallets } = useWallets();
+  const embeddedWallet = wallets?.find(wallet => wallet.walletClientType === 'privy');
+
+  const handleQuickSave = async () => {
+    console.log(embeddedWallet);
+    if (!embeddedWallet) {
+      setError('Embedded wallet not found. Please login with Privy first.');
+      return;
+    }
+
+    // try{
+      await quickSave(
+          embeddedWallet, 
+          amount,
+          (receipt) => {
+            // setTxHash(receipt.transactionHash);
+            console.log(receipt.transactionHash);
+            console.log('Transaction successful:', receipt);
+          },
+          (err) => {
+            console.log(`Transaction failed: ${err.message}`);
+            console.error('Transaction error:', err);
+          }
+        );
+
+    // } catch{
+    //   setError(`Error: ${err.message}`);
+    // }
+  }
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    handleQuickSave();
 
     if (!isValid) return;
 
-    const numAmount = parseFloat(amount);
-
     if (activeTab === "save") {
       dispatch(
-        saveToQuicksave(numAmount),
+        saveToQuicksave(amount),
         openModal({
           modalType: "QUICKSAVE",
           modalProps: {},
@@ -38,7 +68,7 @@ const QuicksaveForm = ({ balance }) => {
       );
     } else {
       dispatch(
-        withdrawFromQuicksave(numAmount),
+        withdrawFromQuicksave(amount),
         openModal({
           modalType: "QUICKSAVE_WITHDRAWAL",
           modalProps: { amount: amount, currency: "USDC" },

@@ -1,11 +1,13 @@
 import { Provider } from "react-redux";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import {PrivyProvider} from '@privy-io/react-auth';
 import store from "../redux/store";
 import Layout from "../components/common/Layout";
 import { WalletProviders } from "../components/wallet/Providers";
 import ModalController from "../components/common/ModalController";
 import "../styles/globals.css";
+import { baseSepolia } from "viem/chains";
 
 function MyApp({ Component, pageProps }) {
   const router = useRouter();
@@ -40,8 +42,18 @@ function MyApp({ Component, pageProps }) {
   //   };
   //   checkAuth();
   // }, [router.pathname]);
-
   return (
+    <PrivyProvider
+      appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID}
+      clientId={process.env.NEXT_PUBLIC_PRIVY_CLIENT_ID}
+      config={{
+        // Create embedded wallets for users who don't have a wallet
+        defaultChain: baseSepolia,
+        embeddedWallets: {
+          createOnLogin: 'users-without-wallets'
+        }
+      }}
+    >
     <Provider store={store}>
       <WalletProviders>
         {/* If loading is needed, add a loading spinner here */}
@@ -58,6 +70,7 @@ function MyApp({ Component, pageProps }) {
         <ModalController />
       </WalletProviders>
     </Provider>
+    </PrivyProvider>
   );
 }
 
