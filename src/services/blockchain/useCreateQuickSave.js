@@ -2,15 +2,17 @@ import { ethers } from 'ethers';
 import quicksave from "../../ABI/QuickSave.json";
 import { BrowserProvider,Contract } from 'ethers';
 
-const USDC_ABI = [
-  "function transfer(address to, uint256 amount) returns (bool)"
-];
-
-const USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+const USDC_CONTRACT = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
 
 const QUICK_SAVE_CONTRACT_ABI = quicksave.abi;
-const QUICK_SAVE_CONTRACT_ADDRESS = "0xbDE2aDD49ff49B9Ad17DB6303eA4b5A830fe198A";
-const baseSepoliaChainId = 84532;
+const QUICK_SAVE_CONTRACT_ADDRESS = "0x1712ba39632f01d236cd1084f771a679b7cbd846";
+
+const erc20ABI = [
+  "function approve(address spender, uint256 amount) external returns (bool)",
+  "function allowance(address owner, address spender) external view returns (uint256)",
+  "function balanceOf(address account) external view returns (uint256)",
+  "function transferFrom(address from, address to, uint256 amount) external returns (bool)"
+];
 
 export async function quickSave(embeddedWallet, amount, onSuccess, onError) {
   try {
@@ -21,8 +23,10 @@ export async function quickSave(embeddedWallet, amount, onSuccess, onError) {
     const provider = await embeddedWallet.getEthereumProvider();
     const ethersProvider = new BrowserProvider(provider);
     const signer = await ethersProvider.getSigner();
-    
+    const usdcContract = new Contract(USDC_CONTRACT, erc20ABI, signer);
     const amountInUSDCUnits = ethers.parseUnits(amount, 6);
+    
+    await usdcContract.approve(QUICK_SAVE_CONTRACT_ADDRESS, amountInUSDCUnits);
     const contract = new Contract(QUICK_SAVE_CONTRACT_ADDRESS, QUICK_SAVE_CONTRACT_ABI, signer);
     
     const tx = await contract.save(amountInUSDCUnits);
