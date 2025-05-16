@@ -35,17 +35,17 @@ export const fundModalSlice = createSlice({
     },
     resetFundModal: (state) => {
       return initialState;
-    }
+    },
   },
 });
 
-export const { 
-  openFundModal, 
-  closeFundModal, 
-  selectSource, 
+export const {
+  openFundModal,
+  closeFundModal,
+  selectSource,
   setAmount,
   completePayment,
-  resetFundModal
+  resetFundModal,
 } = fundModalSlice.actions;
 
 export default fundModalSlice.reducer;

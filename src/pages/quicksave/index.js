@@ -3,30 +3,60 @@ import { useDispatch, useSelector } from "react-redux";
 import Head from "next/head";
 import Layout from "@/components/common/Layout";
 import QuicksaveCard from "../../components/quickSave/QuicksaveCard";
-import ActivityTable from "../../components/quickSave/ActivityTable";
+import TransactionHistory from "../../components/quickSave/TransactionHistory";
 import QuicksaveForm from "../../components/quickSave/QuicksaveForm";
 import TabSelector from "../../components/quickSave/TabSelector";
 import SuccessNotification from "../../components/quickSave/SuccessNotification";
+import { useWallets, usePrivy } from "@privy-io/react-auth";
 import {
   fetchQuicksaveBalance,
-  fetchQuicksaveTransactions,
   fetchWalletBalance,
+  clearMessages,
 } from "../../redux/slices/quicksaveSlice";
 
 const QuicksavePage = () => {
   const dispatch = useDispatch();
-  const { balance, transactions, isLoading, error, success } = useSelector(
+  const { authenticated } = usePrivy();
+  const { wallets } = useWallets();
+  const { balance, isLoading, error, success } = useSelector(
     (state) => state.quicksave
   );
 
+  const embeddedWallet = wallets?.find(
+    (wallet) => wallet.walletClientType === "privy"
+  );
+
   useEffect(() => {
-    // Fetch all required data on component mount
+    // Clear any previous error/success messages
+    dispatch(clearMessages());
+
+    // Fetch wallet balances
     dispatch(fetchQuicksaveBalance());
-    dispatch(fetchQuicksaveTransactions());
     dispatch(fetchWalletBalance());
+
+    // Set up a refresh interval
+    const intervalId = setInterval(() => {
+      dispatch(fetchQuicksaveBalance());
+      dispatch(fetchWalletBalance());
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(intervalId);
   }, [dispatch]);
 
-  if (isLoading) {
+  // Clear success messages after 5 seconds
+  useEffect(() => {
+    let timeoutId;
+    if (success) {
+      timeoutId = setTimeout(() => {
+        dispatch(clearMessages());
+      }, 5000);
+    }
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [success, dispatch]);
+
+  if (isLoading && !balance) {
     return (
       <Layout>
         <div className="flex items-center justify-center h-64">
@@ -53,19 +83,17 @@ const QuicksavePage = () => {
 
         <TabSelector />
 
-        <QuicksaveForm balance={balance} />
-
-        <div className="bg-white rounded-lg shadow-sm">
-          <h2 className="text-lg font-medium mb-4 px-6 pt-6">Activity</h2>
-          <ActivityTable transactions={transactions} isLoading={isLoading} />
-        </div>
-
-        {/* Error notification */}
-        {error && (
-          <div className="bg-red-50 p-4 rounded-md mb-4">
-            <p className="text-red-600">Error: {error}</p>
+        {!authenticated || !embeddedWallet ? (
+          <div className="bg-yellow-50 p-4 rounded-md mb-4">
+            <p className="text-yellow-700">
+              Please connect your wallet to use QuickSave features.
+            </p>
           </div>
+        ) : (
+          <QuicksaveForm balance={balance} />
         )}
+
+        <TransactionHistory />
 
         {/* Success notification */}
         {success && <SuccessNotification message={success} />}

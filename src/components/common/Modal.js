@@ -35,29 +35,46 @@ const Modal = ({ isOpen, onClose, title, children, size = "md" }) => {
   // Handle outside click
   useEffect(() => {
     const handleOutsideClick = (e) => {
+      // Only close if clicking outside the modal content
       if (modalRef.current && !modalRef.current.contains(e.target)) {
         onClose();
       }
     };
 
     if (isOpen) {
-      document.addEventListener("mousedown", handleOutsideClick);
+      // Use mousedown on the backdrop element only, not the entire document
+      const backdrop = document.querySelector(".modal-backdrop");
+      if (backdrop) {
+        backdrop.addEventListener("mousedown", handleOutsideClick);
+      }
     }
 
     return () => {
-      document.removeEventListener("mousedown", handleOutsideClick);
+      const backdrop = document.querySelector(".modal-backdrop");
+      if (backdrop) {
+        backdrop.removeEventListener("mousedown", handleOutsideClick);
+      }
     };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4 modal-backdrop"
+      onClick={(e) => {
+        // Only close if clicking the backdrop directly (not bubbled events)
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
       <div
         ref={modalRef}
-        className={`bg-white rounded-lg shadow-xl w-full ${sizeClasses[size]} animate-fadeIn`}
+        className={`bg-white rounded-lg shadow-xl w-full ${sizeClasses[size]} animate-fadeIn max-h-[90vh] flex flex-col`}
+        onClick={(e) => e.stopPropagation()} // Prevent clicks from bubbling to backdrop
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b">
+        <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0">
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
           <button
             onClick={onClose}
@@ -67,7 +84,7 @@ const Modal = ({ isOpen, onClose, title, children, size = "md" }) => {
           </button>
         </div>
 
-        <div className="px-6 py-4">{children}</div>
+        <div className="overflow-y-auto px-6 py-4 flex-grow">{children}</div>
       </div>
     </div>,
     document.body

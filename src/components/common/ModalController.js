@@ -35,6 +35,21 @@ const MODAL_CONFIGS = {
     message: "Your locked funds are now available.",
     subMessage: "Amount: {amount} {currency}",
   },
+  WITHDRAWAL_SUCCESS: {
+    title: "Withdrawal Successful!",
+    message: "Your funds are on their way",
+    subMessage: "Amount: {amount} {currency} to {destination}",
+  },
+  WITHDRAWAL_BANK_SUCCESS: {
+    title: "Withdrawal to Bank Initiated!",
+    message: "Your funds are on their way to your bank account",
+    subMessage: "Amount: {amount} {currency} • Bank: {bankName} • Account: *****{lastDigits}",
+  },
+  WITHDRAWAL_CRYPTO_SUCCESS: {
+    title: "Crypto Withdrawal Initiated!",
+    message: "Your funds are on their way to your wallet",
+    subMessage: "Amount: {amount} {currency} • Wallet: {walletAddress}",
+  },
   QUICKSAVE: {
     title: "Quicksave complete! Keep going",
     message: "You just saved {amount} {currency} on Quicksave",

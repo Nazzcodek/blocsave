@@ -1,0 +1,489 @@
+import Head from 'next/head';
+import Image from 'next/image';
+import { useState } from 'react';
+
+export default function Home() {
+  // State for FAQ accordion
+  const [openFaq, setOpenFaq] = useState(null);
+  
+  // Toggle FAQ function
+  const toggleFaq = (index) => {
+    if (openFaq === index) {
+      setOpenFaq(null);
+    } else {
+      setOpenFaq(index);
+    }
+  };
+
+  // FAQ data
+  const faqData = [
+    {
+      question: "How does Quicksave work?",
+      answer: "Quicksave allows you to deposit funds anytime and withdraw whenever you need them with no fixed schedule or hidden fees. Your money earns interest while it's deposited."
+    },
+    {
+      question: "What are the SafeLock options?",
+      answer: "SafeLock allows you to lock your funds for a fixed period to earn higher returns of up to 9%. You choose your lock duration, but funds are inaccessible until maturity."
+    },
+    {
+      question: "How secure is my money with Blocsave?",
+      answer: "Blocsave uses smart contracts and trusted DeFi protocols to secure your funds. We implement industry-standard security measures and regular audits to ensure your funds are protected."
+    },
+    {
+      question: "How can I join Group Savings?",
+      answer: "You can create or join a savings circle through the Ajo/Adashe option. Simply select this option after signing up, then either create a new circle or join an existing one with an invitation code."
+    },
+    {
+      question: "Are there any fees for using Blocsave?",
+      answer: "Blocsave promises no hidden fees. There may be minimal network fees for certain transactions, but we're transparent about all costs before you confirm any action."
+    }
+  ];
+
+  return (
+    <div className="font-sans">
+      <Head>
+        <title>Blocsave - The better way to save in Stablecoins</title>
+        <meta name="description" content="Save your money in stablecoins, beat inflation, and build wealth" />
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
+
+      {/* Hero Section */}
+      <header className="bg-black text-white">
+        <nav className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center">
+            <Image src="/public/logo.png" alt="Blocsave Logo" width={30} height={30} className="mr-2" />
+            <span className="text-xl font-bold">blocsave</span>
+          </div>
+          <div className="hidden md:flex space-x-8">
+            <a href="#features" className="hover:text-green-400">Features</a>
+            <a href="#how-it-works" className="hover:text-green-400">How it works</a>
+            <a href="#testimonials" className="hover:text-green-400">Testimonials</a>
+            <a href="#faqs" className="hover:text-green-400">FAQs</a>
+          </div>
+          <button className="bg-green-500 hover:bg-green-600 text-white py-2 px-6 rounded-full">
+            Get started
+          </button>
+        </nav>
+
+        <div className="container mx-auto px-4 py-24 text-center">
+          <h1 className="text-5xl md:text-7xl font-bold mb-8">
+            The better way to<br />
+            save <span className="italic">your money</span><br />
+            in Stablecoins
+          </h1>
+          <p className="text-xl mb-10 max-w-3xl mx-auto">
+            Quicksave anytime, lock funds with Safelock, and build wealth
+            together through community saving circles (Ajo/Esusu)
+          </p>
+          <button className="bg-green-500 hover:bg-green-600 text-white py-3 px-8 rounded-full flex items-center mx-auto">
+            Start Saving
+            <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+            </svg>
+          </button>
+          <div className="mt-16">
+            <Image src="/public/dollar-icon.png" alt="Dollar Sign" width={150} height={150} />
+          </div>
+        </div>
+      </header>
+
+      {/* Why Choose Section */}
+      <section className="bg-gray-100 py-20">
+        <div className="container mx-auto px-4">
+          <h2 className="text-4xl font-bold mb-6 text-center">Why Choose Blocsave</h2>
+          <p className="text-lg text-center mb-16 max-w-3xl mx-auto">
+            Blocsave gives you full control, better returns, and the tools to save consistently — all without the limits of traditional banks.
+          </p>
+          
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Beat Inflation */}
+            <div className="bg-white p-8 rounded-lg shadow-sm">
+              <h3 className="text-2xl font-bold mb-4">Beat Inflation. Preserve Your Wealth.</h3>
+              <p className="mb-6">
+                Blocsave helps you stay ahead by locking in value, earning returns, and building consistent saving habits that protect your money over time.
+              </p>
+              <div className="bg-green-900 p-8 rounded-lg">
+                <Image src="/public/currency-conversion.png" alt="Currency Conversion" width={200} height={100} />
+              </div>
+            </div>
+
+            {/* Community-Powered Savings */}
+            <div className="bg-white p-8 rounded-lg shadow-sm">
+              <h3 className="text-2xl font-bold mb-4">Community-Powered Savings</h3>
+              <p className="mb-6">
+                A rotating savings and interest-free loan system. Members contribute regularly and take turns receiving the pooled funds used for personal goals or urgent needs (known as Ajo/Esusu)
+              </p>
+              <div className="text-center">
+                <Image src="/public/group-savings.png" alt="Group Savings" width={300} height={200} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Additional Features */}
+      <section className="bg-white py-20">
+        <div className="container mx-auto px-4">
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Smart Savings */}
+            <div className="bg-gray-50 p-8 rounded-lg">
+              <h3 className="text-2xl font-bold mb-4">Smart Savings powered by AI Agents</h3>
+              <p className="mb-6">
+                Savings powered by smart contracts and trusted DeFi protocols. 
+                Funds lock securely for a set time and return with profit — like they never left.
+              </p>
+              <div className="text-center">
+                <Image src="/public/smart-contracts.png" alt="Smart Contracts" width={300} height={200} />
+              </div>
+            </div>
+
+            {/* Save and Withdraw */}
+            <div className="bg-gray-50 p-8 rounded-lg">
+              <h3 className="text-2xl font-bold mb-4">Save and Withdraw, Your Way</h3>
+              <p className="mb-6">
+                Top up with Naira via bank transfer, USSD, or crypto — and withdraw directly to your Nigerian bank account in a few taps. Fast, flexible, and stress-free.
+              </p>
+              <div className="text-center">
+                <Image src="/public/withdrawal-form.png" alt="Withdrawal Form" width={300} height={200} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section id="how-it-works" className="bg-gray-50 py-20">
+        <div className="container mx-auto px-4">
+          <h2 className="text-4xl font-bold mb-4">How BlocsaveWorks</h2>
+          <p className="mb-12">Saving made simple, smart, and secure.</p>
+          
+          <button className="bg-green-500 hover:bg-green-600 text-white py-3 px-8 rounded-full flex items-center mb-12">
+            Start Saving Now
+            <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+            </svg>
+          </button>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {/* Step 1 */}
+            <div>
+              <div className="flex items-center mb-4">
+                <div className="mr-4">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold">Sign Up</h3>
+              </div>
+              <p>Get started with just your email or phone number.</p>
+            </div>
+
+            {/* Step 2 */}
+            <div>
+              <div className="flex items-center mb-4">
+                <div className="mr-4">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold">Fund Your Account</h3>
+              </div>
+              <p>Fund with your local currency via bank transfer or USSD. You can also fund directly from your crypto wallet.</p>
+            </div>
+
+            {/* Step 3 */}
+            <div>
+              <div className="flex items-center mb-4">
+                <div className="mr-4">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold">Choose a Saving Method</h3>
+              </div>
+              <p>Select between: Quick Save, SafeLock, or Adashe (Group Savings)</p>
+            </div>
+
+            {/* Step 4 */}
+            <div>
+              <div className="flex items-center mb-4">
+                <div className="mr-4">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold">Watch Your Money Grow</h3>
+              </div>
+              <p>Track your savings, earn interest, and withdraw funds when you need them.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Savings Options */}
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <h2 className="text-4xl font-bold text-center mb-4">Flexible Savings Solutions</h2>
+          <p className="text-center mb-16 max-w-3xl mx-auto">
+            Choose the savings option that fits your goals, whether you need daily access, higher returns, or want to save with friends.
+          </p>
+
+          <div className="grid md:grid-cols-2 gap-8 mb-8">
+            {/* Quick Save */}
+            <div className="bg-green-50 p-8 rounded-lg">
+              <h3 className="text-3xl font-bold mb-4">Quick Save</h3>
+              <p className="mb-6">Save anytime, on your terms, with instant deposits</p>
+              <ul className="mb-8 space-y-2">
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>Save any amount, anytime</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>Withdraw anytime</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>No fixed schedule required</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>No hidden fees</span>
+                </li>
+              </ul>
+              <button className="bg-green-500 hover:bg-green-600 text-white py-2 px-6 rounded-full flex items-center">
+                Make a quick save
+                <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                </svg>
+              </button>
+              <div className="mt-6">
+                <Image src="/public/quick-save-icon.png" alt="Quick Save" width={200} height={150} />
+              </div>
+            </div>
+
+            {/* Safe Lock */}
+            <div className="bg-blue-50 p-8 rounded-lg">
+              <h3 className="text-3xl font-bold mb-4">Safe Lock</h3>
+              <p className="mb-6">Lock your funds for a fixed period and earn higher returns. Perfect for medium-term goals.</p>
+              <ul className="mb-8 space-y-2">
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>Up to 9% returns</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>Lock funds for a fixed period</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>Choose your own lock duration</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>Funds are inaccessible until maturity</span>
+                </li>
+              </ul>
+              <button className="bg-green-500 hover:bg-green-600 text-white py-2 px-6 rounded-full flex items-center">
+                Make a quick save
+                <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                </svg>
+              </button>
+              <div className="mt-6">
+                <Image src="/public/safe-lock-icon.png" alt="Safe Lock" width={200} height={150} />
+              </div>
+            </div>
+          </div>
+
+          {/* Ajo/Adashe */}
+          <div className="bg-teal-800 text-white p-8 rounded-lg">
+            <h3 className="text-3xl font-bold mb-4">Ajo/Adashe<span className="text-xl font-normal">(group savings)</span></h3>
+            <p className="mb-6">
+              Save together with friends, family, or colleagues. Pool resources and take turns receiving the pot.
+            </p>
+            <ul className="mb-8 space-y-2">
+              <li className="flex items-start">
+                <span className="mr-2">•</span>
+                <span>Create or join a savings circle</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">•</span>
+                <span>Automated rotation and distribution</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">•</span>
+                <span>Scheduled payments (e.g., weekly, monthly)</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">•</span>
+                <span>Payout order set by rotation or lottery</span>
+              </li>
+            </ul>
+            <button className="bg-green-500 hover:bg-green-600 text-white py-2 px-6 rounded-full flex items-center">
+              Make a quick save
+              <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+              </svg>
+            </button>
+            <div className="mt-6">
+              <Image src="/public/group-icon.png" alt="Group Savings" width={200} height={150} />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* User Images Section */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4 text-center">
+          <div className="grid grid-cols-3 gap-4 mb-8">
+            <div>
+              <Image src="/public/market-vendor.jpg" alt="Market Vendor" width={200} height={200} className="rounded-lg mx-auto" />
+            </div>
+            <div>
+              <Image src="/public/market-vendor.jpg" alt="Market Vendor" width={200} height={200} className="rounded-lg mx-auto" />
+            </div>
+            <div>
+              <Image src="/public/market-vendor.jpg" alt="Market Vendor" width={200} height={200} className="rounded-lg mx-auto" />
+            </div>
+          </div>
+          
+          <h2 className="text-4xl font-bold mb-6">Your borderless account awaits</h2>
+          
+          <button className="bg-green-500 hover:bg-green-600 text-white py-3 px-8 rounded-full flex items-center mx-auto">
+            Get Started
+            <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+            </svg>
+          </button>
+          
+          <div className="grid grid-cols-3 gap-4 mt-8">
+            <div>
+              <Image src="/public/market-vendor.jpg" alt="Market Vendor" width={200} height={200} className="rounded-lg mx-auto" />
+            </div>
+            <div>
+              <Image src="/public/market-vendor.jpg" alt="Market Vendor" width={200} height={200} className="rounded-lg mx-auto" />
+            </div>
+            <div>
+              <Image src="/public/market-vendor.jpg" alt="Market Vendor" width={200} height={200} className="rounded-lg mx-auto" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section id="faqs" className="py-20 bg-black text-white">
+        <div className="container mx-auto px-4">
+          <h2 className="text-4xl font-bold mb-6">Frequently Asked Questions</h2>
+          <p className="mb-12">Find answers to common questions about Blocsave and our savings options.</p>
+          
+          <div className="max-w-3xl mx-auto">
+            {faqData.map((faq, index) => (
+              <div key={index} className="mb-4 border-b border-gray-700 pb-4">
+                <button
+                  className="w-full text-left flex justify-between items-center py-2"
+                  onClick={() => toggleFaq(index)}
+                >
+                  <span className="text-xl font-medium">{faq.question}</span>
+                  <svg 
+                    className={`w-6 h-6 transition-transform ${openFaq === index ? 'transform rotate-180' : ''}`} 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24" 
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </button>
+                {openFaq === index && (
+                  <div className="mt-2 pl-2">{faq.answer}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 bg-black text-white">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-4xl font-bold mb-4">Beat inflation and preserve your wealth</h2>
+          <p className="mb-8">Convert local currency to USDC stablecoins and access high-yield DeFi</p>
+          
+          <button className="bg-green-500 hover:bg-green-600 text-white py-3 px-8 rounded-full mb-16 flex items-center mx-auto">
+            Get Started
+            <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+            </svg>
+          </button>
+          
+          {/* Footer Links */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-8 text-left mb-12">
+            <div>
+              <h3 className="font-bold mb-4">BlocSave</h3>
+              <ul className="space-y-2">
+                <li><a href="#" className="hover:text-green-400">About</a></li>
+                <li><a href="#" className="hover:text-green-400">Campaigns</a></li>
+                <li><a href="#" className="hover:text-green-400">Branding</a></li>
+                <li><a href="#" className="hover:text-green-400">Offline</a></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h3 className="font-bold mb-4">Services</h3>
+              <ul className="space-y-2">
+                <li><a href="#" className="hover:text-green-400">Email Marketing</a></li>
+                <li><a href="#" className="hover:text-green-400">Campaigns</a></li>
+                <li><a href="#" className="hover:text-green-400">Branding</a></li>
+                <li><a href="#" className="hover:text-green-400">Offline</a></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h3 className="font-bold mb-4">Services</h3>
+              <ul className="space-y-2">
+                <li><a href="#" className="hover:text-green-400">Email Marketing</a></li>
+                <li><a href="#" className="hover:text-green-400">Campaigns</a></li>
+                <li><a href="#" className="hover:text-green-400">Branding</a></li>
+                <li><a href="#" className="hover:text-green-400">Offline</a></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h3 className="font-bold mb-4">Services</h3>
+              <ul className="space-y-2">
+                <li><a href="#" className="hover:text-green-400">Email Marketing</a></li>
+                <li><a href="#" className="hover:text-green-400">Campaigns</a></li>
+                <li><a href="#" className="hover:text-green-400">Branding</a></li>
+                <li><a href="#" className="hover:text-green-400">Offline</a></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h3 className="font-bold mb-4">Subscribe to our newsletter</h3>
+              <div className="flex mt-4">
+                <input 
+                  type="email" 
+                  placeholder="Email address" 
+                  className="px-4 py-2 bg-gray-800 text-white rounded-l-lg focus:outline-none w-full"
+                />
+                <button className="bg-green-500 px-4 rounded-r-lg">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Logo at bottom */}
+      <div className="bg-black h-24 flex items-end">
+        <div className="container mx-auto px-4">
+          <Image src="/public/blocsave-logo-large.png" alt="Blocsave" width={300} height={100} />
+        </div>
+      </div>
+    </div>
+  );
+}

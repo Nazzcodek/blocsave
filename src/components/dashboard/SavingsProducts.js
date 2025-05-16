@@ -1,11 +1,19 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
+import { useWallets } from "@privy-io/react-auth";
 import Link from "next/link";
 import Card from "@/components/common/Card";
 import Image from "next/image";
+import { getQuickSaveBalance } from "@/services/blockchain/useQuickSaveBalance";
 
-const ProductCard = ({ product }) => {
-  const { type, balance, description } = product;
+const ProductCard = ({ product, actualBalance }) => {
+  const { type, description } = product;
+
+  // Use actualBalance if available (for QuickSave), otherwise use the product balance
+  const balance =
+    type.toLowerCase() === "quicksave" && actualBalance !== null
+      ? actualBalance
+      : product.balance;
 
   const getBackgroundColor = () => {
     switch (type.toLowerCase()) {
@@ -56,12 +64,16 @@ const ProductCard = ({ product }) => {
         return "text-blue-600";
       case "safelock":
         return "text-green-600";
-      case "adsafshe":
+      case "adashe":
         return "text-purple-600";
       default:
         return "text-gray-600";
     }
   };
+
+  // Display loading state if the type is quicksave and balanceLoading is true
+  const isLoading =
+    type.toLowerCase() === "quicksave" && product.balanceLoading;
 
   return (
     <Link href={`/${type.toLowerCase()}`}>
@@ -84,7 +96,15 @@ const ProductCard = ({ product }) => {
             </div>
             <h3 className={`font-medium ml-3 ${getTitleColor()}`}>{type}</h3>
           </div>
-          <p className="text-xl sm:text-2xl font-bold mt-2">${balance}</p>
+
+          {isLoading ? (
+            <div className="animate-pulse h-7 bg-gray-200 rounded w-24 mb-2"></div>
+          ) : (
+            <p className="text-xl sm:text-2xl font-bold mt-2">
+              ${typeof balance === "number" ? balance.toFixed(2) : "0.00"}
+            </p>
+          )}
+
           <p className="text-xs text-gray-500 mt-1">{description}</p>
         </div>
       </Card>
@@ -94,13 +114,62 @@ const ProductCard = ({ product }) => {
 
 const SavingsProducts = () => {
   const { savingsProducts } = useSelector((state) => state.dashboard);
+  const { wallets } = useWallets();
+  const [quickSaveBalance, setQuickSaveBalance] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch actual QuickSave balance from blockchain
+  useEffect(() => {
+    const fetchQuickSaveBalance = async () => {
+      try {
+        setIsLoading(true);
+        const embeddedWallet = wallets?.find(
+          (wallet) => wallet.walletClientType === "privy"
+        );
+
+        if (embeddedWallet) {
+          const balance = await getQuickSaveBalance(embeddedWallet);
+          setQuickSaveBalance(balance);
+        }
+      } catch (error) {
+        console.error("Error fetching QuickSave balance:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchQuickSaveBalance();
+
+    // Refresh every 30 seconds
+    const intervalId = setInterval(fetchQuickSaveBalance, 30000);
+    return () => clearInterval(intervalId);
+  }, [wallets]);
+
+  // Add loading and actual balance data to products
+  const enhancedProducts = savingsProducts.map((product) => {
+    if (product.type.toLowerCase() === "quicksave") {
+      return {
+        ...product,
+        balanceLoading: isLoading,
+      };
+    }
+    return product;
+  });
 
   return (
     <div>
-      <h2 className="text-xl font-bold text-gray-900 mb-4">My Savings</h2>
+      <h2 className="text-[18px] font-bold text-gray-900 mb-4">My Savings</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {savingsProducts.map((product) => (
-          <ProductCard key={product.type} product={product} />
+        {enhancedProducts.map((product) => (
+          <ProductCard
+            key={product.type}
+            product={product}
+            actualBalance={
+              product.type.toLowerCase() === "quicksave"
+                ? quickSaveBalance
+                : null
+            }
+          />
         ))}
       </div>
     </div>

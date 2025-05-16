@@ -13,13 +13,14 @@ const Button = ({
   type = "button",
   ...props
 }) => {
-  // Variant styles
+  // Variant styles - only apply if no custom className is provided with same properties
   const variants = {
     primary: "bg-green-500 hover:bg-green-600 text-white",
     secondary: "bg-blue-500 hover:bg-blue-600 text-white",
     outline: "bg-white border border-gray-300 hover:bg-gray-50 text-gray-700",
     danger: "bg-red-500 hover:bg-red-600 text-white",
     ghost: "bg-transparent hover:bg-gray-100 text-gray-700",
+    custom: "", // Add custom variant that doesn't apply default styling
   };
 
   // Size styles
@@ -36,6 +37,9 @@ const Button = ({
     ? "opacity-50 cursor-not-allowed"
     : "cursor-pointer";
 
+  // Determine if we should use variant styling or let custom className take priority
+  const useCustomStyling = className.includes("bg-") || variant === "custom";
+
   return (
     <button
       type={type}
@@ -43,7 +47,7 @@ const Button = ({
         inline-flex items-center justify-center rounded-lg
         transition-colors duration-150 ease-in-out
         font-medium leading-none
-        ${variants[variant]}
+        ${!useCustomStyling ? variants[variant] : ""}
         ${sizes[size]}
         ${disabledClasses}
         ${className}
