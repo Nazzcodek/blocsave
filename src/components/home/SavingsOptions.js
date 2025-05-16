@@ -70,7 +70,7 @@ const QuickSaveCard = () => {
         <img
           src="/icons/house_1.svg"
           alt="House"
-          className="w-40 h-40 sm:w-50 sm:h-50 object-contain"
+          className="w-50 h-50 sm:w-50 sm:h-50 object-contain"
         />
       </div>
     </div>
@@ -146,7 +146,7 @@ const SafeLockCard = () => {
         <img
           src="/icons/savings.svg"
           alt="Safe Lock"
-          className="w-40 h-40 sm:w-50 sm:h-50 object-contain"
+          className="w-50 h-50 sm:w-50 sm:h-50 object-contain"
         />
       </div>
     </div>
@@ -226,7 +226,7 @@ const AjoAdasheCard = () => {
           <img
             src="/icons/block-stack.svg"
             alt="Group Savings"
-            className="w-40 h-40 sm:w-50 sm:h-50 object-contain"
+            className="w-50 h-50 sm:w-50 sm:h-50 object-contain"
           />
         </div>
       </div>

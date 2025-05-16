@@ -1,6 +1,8 @@
 import React from "react";
 import { useSelector } from "react-redux";
 import SuccessModal from "./SuccessModal";
+import ErrorModal from "./ErrorModal";
+import InfoModal from "./InfoModal";
 
 // Helper function to format message strings with dynamic values
 const formatMessage = (template, values) => {
@@ -43,7 +45,8 @@ const MODAL_CONFIGS = {
   WITHDRAWAL_BANK_SUCCESS: {
     title: "Withdrawal to Bank Initiated!",
     message: "Your funds are on their way to your bank account",
-    subMessage: "Amount: {amount} {currency} • Bank: {bankName} • Account: *****{lastDigits}",
+    subMessage:
+      "Amount: {amount} {currency} • Bank: {bankName} • Account: *****{lastDigits}",
   },
   WITHDRAWAL_CRYPTO_SUCCESS: {
     title: "Crypto Withdrawal Initiated!",
@@ -61,6 +64,17 @@ const MODAL_CONFIGS = {
     subMessage: "",
   },
   // Add more modal configurations as needed
+  ERROR_MODAL: {
+    title: "Error Occurred",
+    message: "There was a problem processing your request. Please try again.",
+    isError: true,
+  },
+  INFO_MODAL: {
+    title: "Information",
+    message: "Please note this information.",
+    isInfo: true,
+    showSpinner: false,
+  },
 };
 
 const ModalController = () => {
@@ -89,7 +103,12 @@ const ModalController = () => {
 
   // Handle special case for ADASHE_CREATION_SUCCESS with code prop
   if (modalType === "ADASHE_CREATION_SUCCESS" && modalProps.code) {
+    // Use the blockchain-generated circle invitation code if available
     formattedConfig.code = modalProps.code;
+
+    // Update messages specifically for the circle creation success
+    formattedConfig.message =
+      "Invite your trusted circle to join your Adashe using this code:";
   }
 
   // Merge with any additional props
@@ -98,6 +117,17 @@ const ModalController = () => {
     ...modalProps,
   };
 
+  // Check if this is an error modal
+  if (modalConfig.isError) {
+    return <ErrorModal {...modalConfig} />;
+  }
+
+  // Check if this is an info modal
+  if (modalConfig.isInfo) {
+    return <InfoModal {...modalConfig} />;
+  }
+
+  // Default to success modal for all other types
   return <SuccessModal {...modalConfig} />;
 };
 

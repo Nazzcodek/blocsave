@@ -1,19 +1,32 @@
 import React, { useState } from "react";
+import { useDispatch } from "react-redux";
+import { openModal } from "../../redux/slices/modalSlice";
+import ContributeModal from "./ContributeModal";
 
 const InvitationCode = ({ circle }) => {
   if (!circle) return null;
 
   const { invitationCode, members } = circle;
   const [copied, setCopied] = useState(false);
+  const [showContributeModal, setShowContributeModal] = useState(false);
+  const dispatch = useDispatch();
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(invitationCode);
     setCopied(true);
-    
+
     // Reset after 2 seconds
     setTimeout(() => {
       setCopied(false);
     }, 2000);
+  };
+
+  const handleContribute = () => {
+    setShowContributeModal(true);
+  };
+
+  const handleCloseContributeModal = () => {
+    setShowContributeModal(false);
   };
 
   return (
@@ -23,6 +36,28 @@ const InvitationCode = ({ circle }) => {
         Share this code to invite others to join
       </p>
 
+      {/* Contribute button */}
+      <button
+        onClick={handleContribute}
+        className="w-full bg-[#079669] text-white text-sm font-medium py-2 px-4 rounded-md mb-4 flex items-center justify-center"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-4 w-4 mr-1"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+          />
+        </svg>
+        Contribute to this circle
+      </button>
+
       <div className="flex items-center justify-between p-3 bg-gray-50 rounded-md mb-6">
         <span className="text-[12px] font-semibold">{invitationCode}</span>
         <div className="flex flex-col items-center">
@@ -31,7 +66,18 @@ const InvitationCode = ({ circle }) => {
             className="text-gray-500 hover:text-gray-700"
           >
             {copied ? (
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-green-500">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-4 h-4 text-green-500"
+              >
                 <polyline points="20 6 9 17 4 12"></polyline>
               </svg>
             ) : (
@@ -73,6 +119,11 @@ const InvitationCode = ({ circle }) => {
           </div>
         ))}
       </div>
+
+      {/* Contribute Modal */}
+      {showContributeModal && (
+        <ContributeModal circle={circle} onClose={handleCloseContributeModal} />
+      )}
     </div>
   );
 };

@@ -1,14 +1,49 @@
-import React from "react";
+import React, { useState } from "react";
 import { useDispatch } from "react-redux";
 import { withdrawFromCircle } from "../../redux/slices/adasheSlice";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
 
 const PaymentSchedule = ({ circle }) => {
   const dispatch = useDispatch();
+  const { authenticated } = usePrivy();
+  const { wallets } = useWallets();
+  const [processingWithdrawal, setProcessingWithdrawal] = useState(false);
+  const [processingRound, setProcessingRound] = useState(null);
 
   if (!circle || !circle.paymentSchedule) return null;
 
-  const handleWithdraw = (roundId) => {
-    dispatch(withdrawFromCircle({ roundId }));
+  const handleWithdraw = async (roundId) => {
+    if (!authenticated) {
+      alert("Please connect your wallet to withdraw");
+      return;
+    }
+
+    setProcessingWithdrawal(true);
+    setProcessingRound(roundId);
+
+    try {
+      const embeddedWallet = wallets?.find(
+        (wallet) => wallet.walletClientType === "privy"
+      );
+
+      if (!embeddedWallet) {
+        throw new Error("Embedded wallet not found");
+      }
+
+      await dispatch(
+        withdrawFromCircle({
+          embeddedWallet,
+          circleId: circle.id,
+          roundId,
+        })
+      ).unwrap();
+    } catch (error) {
+      console.error("Failed to withdraw:", error);
+      alert(`Failed to withdraw: ${error.message || "Unknown error"}`);
+    } finally {
+      setProcessingWithdrawal(false);
+      setProcessingRound(null);
+    }
   };
 
   const getStatusBadge = (status) => {
@@ -94,32 +129,41 @@ const PaymentSchedule = ({ circle }) => {
 
               {round.status === "active" && round.recipient.name === "You" && (
                 <button
-                  className={`flex items-center justify-center rounded-md px-2 sm:px-3 py-1 text-xs sm:text-sm ${
-                    round.status === "completed"
-                      ? "bg-[#079669] text-white"
-                      : "bg-gray-100 text-gray-800"
-                  } disabled:opacity-70`}
-                  disabled={round.status !== "completed"}
-                  onClick={
-                    round.status === "completed"
-                      ? handleBreakSafelock
-                      : undefined
-                  }
+                  className={`flex items-center justify-center rounded-md px-2 sm:px-3 py-1 text-xs sm:text-sm ${"bg-[#079669] text-white"} disabled:opacity-70`}
+                  disabled={processingWithdrawal || !authenticated}
+                  onClick={() => handleWithdraw(round.round)}
                 >
-                  {round.status === "completed" ? (
-                    <img
-                      src="icons/wallet-white.svg"
-                      alt="Withdraw"
-                      className="w-4 h-4 mr-2 text-gray-600"
-                    />
+                  {processingWithdrawal && processingRound === round.round ? (
+                    <svg
+                      className="animate-spin h-4 w-4 mr-2 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
                   ) : (
                     <img
-                      src="icons/wallet-gray.svg"
+                      src="/icons/wallet-white.svg"
                       alt="Withdraw"
-                      className="w-4 h-4 mr-2 text-gray-600"
+                      className="w-4 h-4 mr-2 text-white"
                     />
                   )}
-                  Withdraw
+                  {processingWithdrawal && processingRound === round.round
+                    ? "Processing..."
+                    : "Withdraw"}
                 </button>
               )}
             </div>

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import ReactDOM from "react-dom";
 import { useDispatch } from "react-redux";
 import { closeModal, openModal } from "../../redux/slices/modalSlice";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { joinAdasheCircle } from "../../services/blockchain/useAdasheContract";
 
 const JoinGroupModal = ({
   title = "Join a Savings Group",
@@ -14,7 +16,10 @@ const JoinGroupModal = ({
 }) => {
   const [inviteCode, setInviteCode] = useState(initialValue);
   const [mounted, setMounted] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
   const dispatch = useDispatch();
+  const { user, authenticated } = usePrivy();
+  const { wallets } = useWallets();
 
   useEffect(() => {
     setMounted(true);
@@ -29,20 +34,51 @@ const JoinGroupModal = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsJoining(true);
 
     try {
-      // Call the onSubmit handler with the invite code
-      await onSubmit(inviteCode);
+      if (!authenticated) {
+        alert("Please connect your wallet first");
+        setIsJoining(false);
+        return;
+      }
 
+      const embeddedWallet = wallets?.find(
+        (wallet) => wallet.walletClientType === "privy"
+      );
+
+      if (!embeddedWallet) {
+        throw new Error("Embedded wallet not found");
+      }
+
+      // Join the circle using blockchain
+      const receipt = await joinAdasheCircle(
+        embeddedWallet,
+        inviteCode,
+        null,
+        (error) => {
+          throw error;
+        }
+      );
+
+      // Call any additional onSubmit handler if provided
+      if (onSubmit) {
+        await onSubmit(inviteCode);
+      }
+
+      // Show success modal
       dispatch(
         openModal({
           modalType: "ADASHE_JOIN_SUCCESS",
-          //   modalProps: { groupName: response?.groupName || "Savings" },
+          modalProps: { groupName: inviteCode },
         })
       );
+
       onClose();
     } catch (error) {
       console.error("Failed to join group:", error);
+      alert(`Failed to join group: ${error.message || "Unknown error"}`);
+      setIsJoining(false);
     }
   };
 
@@ -108,9 +144,38 @@ const JoinGroupModal = ({
             {/* Button */}
             <button
               type="submit"
-              className="w-full bg-[#079669] text-white font-medium py-3 px-4 rounded-lg transition duration-200"
+              disabled={isJoining}
+              className={`w-full bg-[#079669] text-white font-medium py-3 px-4 rounded-lg transition duration-200 ${
+                isJoining ? "opacity-70 cursor-not-allowed" : ""
+              }`}
             >
-              {buttonText}
+              {isJoining ? (
+                <div className="flex items-center justify-center">
+                  <svg
+                    className="animate-spin h-4 w-4 mr-2 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Joining...
+                </div>
+              ) : (
+                buttonText
+              )}
             </button>
           </form>
         </div>

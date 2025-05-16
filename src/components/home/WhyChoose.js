@@ -17,7 +17,7 @@ const CommunitySavingsCircle = () => {
             />
             <div className="w-[2px] h-2 bg-[#079669]"></div>
             <span className="bg-purple-100 text-purple-600 px-2 py-1 rounded-full text-xs font-medium mt-0.5">
-              100USDC
+              100 USDC
             </span>
             <div className="w-[2px] h-2 bg-[#079669]"></div>
           </div>
@@ -32,7 +32,7 @@ const CommunitySavingsCircle = () => {
             />
             <div className="w-[2px] h-2 bg-[#079669]"></div>
             <span className="bg-blue-100 text-blue-600 px-1 py-1 rounded-full text-xs font-medium mt-0.5">
-              100USDC
+              100 USDC
             </span>
             <div className="w-[2px] h-2 bg-[#079669]"></div>
           </div>
@@ -43,7 +43,7 @@ const CommunitySavingsCircle = () => {
             <img src="/icons/Memoji.svg" alt="Member C" className="w-12 h-12" />
             <div className="w-[2px] h-2 bg-[#079669]"></div>
             <span className="bg-[#0796691a] text-[#079669] px-1 py-1 rounded-full text-xs font-medium mt-0.5">
-              100USDC
+              100 USDC
             </span>
             <div className="w-[2px] h-2 bg-[#079669]"></div>
           </div>
@@ -58,7 +58,7 @@ const CommunitySavingsCircle = () => {
             />
             <div className="w-[2px] h-2 bg-[#079669]"></div>
             <span className="bg-yellow-100 text-yellow-600 px-1 py-1 rounded-full text-xs font-medium mt-0.5">
-              100USDC
+              100 USDC
             </span>
             <div className="w-[2px] h-2 bg-[#079669]"></div>
           </div>
@@ -182,12 +182,12 @@ const SmartSavingsFlow = () => {
                     className="w-8 h-8 mx-auto"
                   />
                   <span className="absolute -top-1 -right-1 bg-[#0796691a] text-green-600 text-xs px-1 rounded-sm">
-                    100USDC
+                    100 USDC
                   </span>
                 </div>
               </div>
               <p className="text-xs font-medium">
-                User commits 100USDC
+                User commits 100 USDC
                 <br />
                 from blocsave wallet
               </p>

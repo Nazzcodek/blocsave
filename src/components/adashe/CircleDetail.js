@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   backFromDetail,
@@ -6,6 +6,7 @@ import {
   setDetailTabView,
   setActiveTab,
 } from "../../redux/slices/adasheSlice";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
 import TabSelector from "./DetailTabSelector";
 import CircleSummary from "./GroupSummary";
 import InvitationCode from "./InvitationCode";
@@ -17,6 +18,9 @@ const CircleDetail = () => {
   const { circles, selectedCircleId, detailTabView, isLoading } = useSelector(
     (state) => state.adashe
   );
+  const { user, authenticated } = usePrivy();
+  const { wallets } = useWallets();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Find the selected circle
   const selectedCircle = circles.find(
@@ -25,10 +29,53 @@ const CircleDetail = () => {
 
   // Fetch data if needed
   useEffect(() => {
-    if (circles.length === 0 && !isLoading) {
-      dispatch(fetchAdasheData());
+    const loadData = async () => {
+      if (
+        (circles.length === 0 || !selectedCircle) &&
+        !isLoading &&
+        authenticated
+      ) {
+        try {
+          const embeddedWallet = wallets?.find(
+            (wallet) => wallet.walletClientType === "privy"
+          );
+          if (embeddedWallet) {
+            dispatch(fetchAdasheData({ embeddedWallet }));
+          }
+        } catch (error) {
+          console.error("Failed to fetch Adashe data:", error);
+        }
+      }
+    };
+
+    loadData();
+  }, [
+    dispatch,
+    circles.length,
+    isLoading,
+    authenticated,
+    wallets,
+    selectedCircle,
+  ]);
+
+  // Function to manually refresh the data
+  const handleRefresh = async () => {
+    if (authenticated) {
+      setIsRefreshing(true);
+      try {
+        const embeddedWallet = wallets?.find(
+          (wallet) => wallet.walletClientType === "privy"
+        );
+        if (embeddedWallet) {
+          await dispatch(fetchAdasheData({ embeddedWallet }));
+        }
+      } catch (error) {
+        console.error("Failed to refresh Adashe data:", error);
+      } finally {
+        setIsRefreshing(false);
+      }
     }
-  }, [dispatch, circles.length, isLoading]);
+  };
 
   // Mock circle data for preview when no circle is selected
   const mockCircle = {
@@ -130,26 +177,62 @@ const CircleDetail = () => {
 
   return (
     <div className="max-w-4xl mx-auto">
-      {/* Back button */}
-      <button
-        onClick={handleBack}
-        className="flex items-center text-gray-600 mb-1"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+      <div className="flex justify-between items-center mb-1">
+        {/* Back button */}
+        <button
+          onClick={handleBack}
+          className="flex items-center text-gray-600"
         >
-          <path d="M19 12H5M12 19l-7-7 7-7" />
-        </svg>
-        <span className="ml-1">Back</span>
-      </button>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+          <span className="ml-1">Back</span>
+        </button>
+
+        {/* Refresh button */}
+        <button
+          onClick={handleRefresh}
+          disabled={isRefreshing || !authenticated}
+          className={`flex items-center text-gray-600 ${
+            isRefreshing || !authenticated
+              ? "opacity-50 cursor-not-allowed"
+              : ""
+          }`}
+          title={
+            authenticated
+              ? "Refresh blockchain data"
+              : "Connect wallet to refresh"
+          }
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={`${isRefreshing ? "animate-spin" : ""}`}
+          >
+            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
+          </svg>
+          <span className="ml-1">
+            {isRefreshing ? "Refreshing..." : "Refresh"}
+          </span>
+        </button>
+      </div>
 
       <h1 className="text-2xl font-bold mb-4">Group Detail</h1>
 

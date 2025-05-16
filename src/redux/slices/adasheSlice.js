@@ -1,167 +1,342 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import {
+  getAllUserAdasheCircles,
+  getAdasheCircleMetadata,
+  getAdasheTransactionHistory,
+} from "../../services/blockchain/useAdasheHistory";
+import {
+  createAdasheCircle,
+  joinAdasheCircle,
+  contributeToAdashe,
+  withdrawFromAdashe,
+} from "../../services/blockchain/useAdasheContract";
 
-// Mock API calls for demo purposes
+// Fetch all Adashe data including circles from blockchain
 export const fetchAdasheData = createAsyncThunk(
   "adashe/fetchData",
-  async (_, { rejectWithValue }) => {
+  async ({ embeddedWallet }, { rejectWithValue }) => {
     try {
-      // In a real app, this would be an API call
-      return {
-        balance: 100,
-        circles: [
-          {
-            id: "jesusboyz-circle",
-            name: "Jesusboyz",
-            weeklyAmount: 100,
-            memberCount: 5,
-            totalMembers: 5,
-            totalRounds: 5,
-            currentRound: 3,
-            startDate: "01-05-2025",
-            endDate: "31-05-2025",
-            nextContributionDate: "17 May 2025",
-            nextPayoutDate: "18 May 2025",
-            totalContributionAmount: 500,
-            cycleProgress: 40,
-            invitationCode: "Jesusboyz109",
+      if (!embeddedWallet) {
+        return rejectWithValue("Wallet not connected");
+      }
+
+      // Get user's circles from blockchain
+      const userCircles = await getAllUserAdasheCircles(embeddedWallet);
+
+      // Format circles to match our application's structure
+      const formattedCircles = await Promise.all(
+        userCircles.map(async (circle) => {
+          // Get transaction history for this circle
+          const transactions = await getAdasheTransactionHistory(
+            embeddedWallet,
+            circle.address
+          );
+
+          // Create payment schedule from transactions
+          const paymentSchedule = transactions
+            .filter((tx) => tx.type === "Payout")
+            .map((tx, index) => ({
+              round: index + 1,
+              recipient: { id: tx.address, name: tx.user },
+              date: tx.date.split(",")[0], // Just the date part
+              contributions: circle.totalContributedWeeks,
+              status:
+                index < circle.currentWeek - 1
+                  ? "completed"
+                  : index === circle.currentWeek - 1
+                  ? "active"
+                  : "pending",
+            }));
+
+          // Create member list from circle metadata
+          const members = circle.memberAddresses.map((address, index) => ({
+            id: address,
+            name: index === 0 ? "You" : `Member ${index + 1}`,
+            address: address.slice(0, 10) + "..." + address.slice(-8),
+          }));
+
+          // Current date for calculations
+          const currentDate = new Date();
+          const startDate = new Date(currentDate);
+          startDate.setDate(startDate.getDate() - circle.currentWeek * 7); // Approximate start
+
+          const endDate = new Date(startDate);
+          endDate.setDate(endDate.getDate() + circle.totalWeeks * 7); // Approximate end
+
+          // Format dates
+          const formatDate = (date) => {
+            return `${date.getDate().toString().padStart(2, "0")}-${(
+              date.getMonth() + 1
+            )
+              .toString()
+              .padStart(2, "0")}-${date.getFullYear()}`;
+          };
+
+          // Next contribution and payout dates
+          const nextContributionDate = new Date(currentDate);
+          nextContributionDate.setDate(nextContributionDate.getDate() + 7);
+
+          const nextPayoutDate = new Date(nextContributionDate);
+          nextPayoutDate.setDate(nextPayoutDate.getDate() + 1);
+
+          return {
+            id: circle.address,
+            name: `Adashe Circle ${circle.address.slice(0, 6)}`,
+            weeklyAmount:
+              circle.totalWeeks > 0
+                ? Math.round(
+                    (circle.totalContributedWeeks / circle.totalWeeks) * 100
+                  )
+                : 0,
+            memberCount: circle.membersCount,
+            totalMembers: circle.membersCount,
+            totalRounds: circle.totalWeeks,
+            currentRound: circle.currentWeek,
+            startDate: formatDate(startDate),
+            endDate: formatDate(endDate),
+            nextContributionDate: `${nextContributionDate.getDate()} ${nextContributionDate.toLocaleString(
+              "default",
+              { month: "short" }
+            )} ${nextContributionDate.getFullYear()}`,
+            nextPayoutDate: `${nextPayoutDate.getDate()} ${nextPayoutDate.toLocaleString(
+              "default",
+              { month: "short" }
+            )} ${nextPayoutDate.getFullYear()}`,
+            totalContributionAmount: circle.membersCount * 100, // Example calculation
+            cycleProgress: Math.round(
+              ((circle.currentWeek - 1) / circle.totalWeeks) * 100
+            ),
+            invitationCode: `Adashe${circle.address.slice(0, 8)}`,
             isActive: true,
-            // Only include serializable data, no React elements
-            members: [
-              {
-                id: "0x1234_5678",
-                name: "You",
-                address: "0xd74f2835ddcbc1fcad1f4d...",
-              },
-              {
-                id: "1x1234_5678",
-                name: "Dave",
-                address: "0xd74f2835ddcbc1fcad1f4d...",
-              },
-              {
-                id: "2x1234_5678",
-                name: "Danny",
-                address: "0xd74f2835ddcbc1fcad1f4d...",
-              },
-              {
-                id: "3x1234_5678",
-                name: "Mic",
-                address: "0xd74f2835ddcbc1fcad1f4d...",
-              },
-              {
-                id: "4x1234_5678",
-                name: "James",
-                address: "0xd74f2835ddcbc1fcad1f4d...",
-              },
-            ],
-            paymentSchedule: [
-              {
-                round: 1,
-                recipient: { id: "3x1234_5678", name: "Mic" },
-                date: "01-05-2025",
-                contributions: 5,
-                status: "completed",
-              },
-              {
-                round: 2,
-                recipient: { id: "4x1234_5678", name: "James" },
-                date: "01-05-2025",
-                contributions: 5,
-                status: "completed",
-              },
-              {
-                round: 3,
-                recipient: { id: "0x1234_5678", name: "You" },
-                date: "01-05-2025",
-                contributions: 2,
-                status: "active",
-              },
-              {
-                round: 4,
-                recipient: { id: "1x1234_5678", name: "Dave" },
-                date: "01-05-2025",
-                contributions: 0,
-                status: "pending",
-              },
-              {
-                round: 5,
-                recipient: { id: "2x1234_5678", name: "Danny" },
-                date: "01-05-2025",
-                contributions: 0,
-                status: "pending",
-              },
-            ],
-          },
-        ],
+            members,
+            paymentSchedule,
+          };
+        })
+      );
+
+      return {
+        balance: formattedCircles.reduce(
+          (sum, circle) => sum + circle.weeklyAmount,
+          0
+        ),
+        circles: formattedCircles,
       };
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.message || "Failed to fetch Adashe data");
     }
   }
 );
 
+// Contribute to a specific Adashe circle
 export const contributeToCircle = createAsyncThunk(
   "adashe/contribute",
-  async ({ circleId, amount }, { rejectWithValue }) => {
+  async (
+    { embeddedWallet, circleId, weekNumber, amount },
+    { rejectWithValue }
+  ) => {
     try {
-      // In a real app, this would be an API call
-      return { circleId, amount, success: true };
+      // Enhanced wallet validation with detailed error
+      if (!embeddedWallet) {
+        console.error("Embedded wallet is null or undefined");
+        return rejectWithValue("Wallet not connected");
+      }
+
+      // Check if wallet is ready
+      try {
+        const provider = await embeddedWallet.getEthereumProvider();
+        if (!provider) {
+          console.error("Ethereum provider not available");
+          return rejectWithValue("Wallet provider not available");
+        }
+      } catch (walletError) {
+        console.error("Error accessing wallet:", walletError);
+        return rejectWithValue(
+          "Failed to access wallet: " + walletError.message
+        );
+      }
+
+      // Validate input parameters
+      if (!circleId) {
+        return rejectWithValue("Invalid circle - please select a valid circle");
+      }
+
+      if (!amount || isNaN(amount) || amount <= 0) {
+        return rejectWithValue("Contribution amount must be greater than 0");
+      }
+
+      // Make contribution via blockchain
+      const receipt = await contributeToAdashe(
+        embeddedWallet,
+        circleId,
+        weekNumber,
+        amount,
+        null,
+        (error) => {
+          throw error;
+        }
+      );
+
+      // Get updated circle metadata after contribution
+      const updatedCircle = await getAdasheCircleMetadata(
+        embeddedWallet,
+        circleId
+      );
+
+      return {
+        circleId,
+        amount,
+        receipt,
+        updatedCircle,
+        success: true,
+      };
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.message || "Failed to contribute");
     }
   }
 );
 
+// Withdraw from a specific Adashe circle
 export const withdrawFromCircle = createAsyncThunk(
   "adashe/withdraw",
-  async ({ roundId }, { rejectWithValue }) => {
+  async ({ embeddedWallet, circleId, roundId }, { rejectWithValue }) => {
     try {
-      // In a real app, this would be an API call
-      return { roundId, success: true };
+      if (!embeddedWallet) {
+        return rejectWithValue("Wallet not connected");
+      }
+
+      // Withdraw via blockchain
+      const receipt = await withdrawFromAdashe(
+        embeddedWallet,
+        circleId,
+        null,
+        (error) => {
+          throw error;
+        }
+      );
+
+      return {
+        circleId,
+        roundId,
+        receipt,
+        success: true,
+      };
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.message || "Failed to withdraw");
     }
   }
 );
 
+// Create a new Adashe circle
 export const createCircle = createAsyncThunk(
   "adashe/createCircle",
-  async (circleData, { rejectWithValue }) => {
+  async ({ embeddedWallet, circleData }, { rejectWithValue }) => {
     try {
-      // In a real app, this would be an API call
+      // Enhanced wallet validation
+      if (!embeddedWallet) {
+        console.error("Embedded wallet is null or undefined");
+        return rejectWithValue("Wallet not connected");
+      }
+
+      // Check if wallet is ready
+      try {
+        const provider = await embeddedWallet.getEthereumProvider();
+        if (!provider) {
+          console.error("Ethereum provider not available");
+          return rejectWithValue("Wallet provider not available");
+        }
+      } catch (walletError) {
+        console.error("Error accessing wallet:", walletError);
+        return rejectWithValue(
+          "Failed to access wallet: " + walletError.message
+        );
+      }
+
+      // Validate circle data using our helper
       const { name, contributionAmount, memberCount, frequency } = circleData;
 
-      // Generate a unique ID for the new circle
-      const newCircleId = `circle-${Date.now()}`;
+      // Import validateAdasheCircleParams from contract helpers
+      const {
+        validateAdasheCircleParams,
+      } = require("../../utils/contractHelpers");
 
-      // Create a new circle object
+      // Validate the circle data
+      const validationError = validateAdasheCircleParams({
+        name,
+        contributionAmount,
+        memberCount,
+      });
+
+      if (validationError) {
+        return rejectWithValue(validationError);
+      }
+
+      // Create circle via blockchain
+      const receipt = await createAdasheCircle(
+        embeddedWallet,
+        name,
+        contributionAmount,
+        memberCount,
+        frequency,
+        "You", // creator name
+        null,
+        (error) => {
+          throw error;
+        }
+      );
+
+      // When creating a circle, we don't know the new address immediately
+      // We'll need to fetch it from the transaction receipt or events
+      // For now, we'll create a placeholder circle until the next data refresh
+
+      // Extract circle address from transaction events if available
+      let circleAddress = "";
+      if (receipt && receipt.logs && receipt.logs.length > 0) {
+        // In a real implementation, you would parse the event data to get the address
+        circleAddress = `0x${Math.random().toString(16).substr(2, 40)}`;
+      } else {
+        circleAddress = `0x${Math.random().toString(16).substr(2, 40)}`;
+      }
+
+      // Create a temporary circle object with expected structure
       const newCircle = {
-        id: newCircleId,
+        id: circleAddress,
         name,
         weeklyAmount: contributionAmount,
         memberCount,
         totalMembers: memberCount,
         totalRounds: memberCount,
         currentRound: 1,
-        startDate: "12-05-2025",
-        endDate: "12-06-2025",
-        nextContributionDate: "19 May 2025",
-        nextPayoutDate: "20 May 2025",
+        startDate: new Date().toLocaleDateString("en-GB"),
+        endDate: new Date(
+          Date.now() + memberCount * 7 * 24 * 60 * 60 * 1000
+        ).toLocaleDateString("en-GB"),
+        nextContributionDate: new Date(
+          Date.now() + 7 * 24 * 60 * 60 * 1000
+        ).toLocaleDateString("en-GB"),
+        nextPayoutDate: new Date(
+          Date.now() + 8 * 24 * 60 * 60 * 1000
+        ).toLocaleDateString("en-GB"),
         totalContributionAmount: contributionAmount * memberCount,
         cycleProgress: 0,
         invitationCode: `${name}${Math.floor(Math.random() * 1000)}`,
         isActive: true,
         members: [
           {
-            id: "0x1234_5678",
+            id: "your-wallet-address",
             name: "You",
-            address: "0xd74f2835ddcbc1fcad1f4d...",
+            address: "Your wallet address",
           },
-          // In a real app, this would be populated with actual members
         ],
         paymentSchedule: [],
+        // Store the receipt for reference
+        receiptHash: receipt.hash || "",
       };
 
-      return { newCircle, success: true };
+      return {
+        newCircle,
+        receipt,
+        success: true,
+      };
     } catch (error) {
       return rejectWithValue(error.message);
     }
