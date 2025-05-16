@@ -1,6 +1,45 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { useWallets } from "@privy-io/react-auth";
+import { getQuickSaveBalance } from "@/services/blockchain/useQuickSaveBalance";
 
 const QuicksaveCard = ({ balance, isLoading }) => {
+  const { wallets } = useWallets();
+  const [actualBalance, setActualBalance] = useState(balance || 0);
+  const [isLoadingBalance, setIsLoadingBalance] = useState(isLoading);
+
+  useEffect(() => {
+    async function fetchBlockchainBalance() {
+      if (wallets && wallets.length > 0) {
+        setIsLoadingBalance(true);
+        const embeddedWallet = wallets.find(
+          (wallet) => wallet.walletClientType === "privy"
+        );
+
+        if (embeddedWallet) {
+          try {
+            const blockchainBalance = await getQuickSaveBalance(embeddedWallet);
+            setActualBalance(blockchainBalance);
+          } catch (error) {
+            console.error("Error fetching QuickSave balance:", error);
+            // Fall back to the provided balance prop if blockchain fetch fails
+            setActualBalance(balance || 0);
+          } finally {
+            setIsLoadingBalance(false);
+          }
+        } else {
+          setIsLoadingBalance(false);
+        }
+      }
+    }
+
+    fetchBlockchainBalance();
+
+    // Set up polling to refresh the balance every 30 seconds
+    const intervalId = setInterval(fetchBlockchainBalance, 30000);
+
+    return () => clearInterval(intervalId);
+  }, [wallets, balance]);
+
   return (
     <div className="bg-[#D1FAE5] rounded-lg p-6 shadow-sm">
       <div className="flex items-center gap-2 mb-2 pl-2">
@@ -15,11 +54,11 @@ const QuicksaveCard = ({ balance, isLoading }) => {
       </div>
 
       <div className="mt-6">
-        {isLoading ? (
+        {isLoadingBalance ? (
           <div className="animate-pulse h-8 bg-gray-200 rounded w-24"></div>
         ) : (
           <h2 className="text-2xl font-bold">
-            ${balance?.toFixed(2) || "0.00"}
+            ${actualBalance.toFixed(2) || "0.00"}
           </h2>
         )}
         <p className="text-sm text-gray-500">

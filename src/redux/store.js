@@ -10,6 +10,7 @@ import safelockReducer from "./slices/safelockSlice";
 import adasheReducer from "./slices/adasheSlice";
 import modalReducer from "./slices/modalSlice";
 import fundModalReducer from "./slices/fundModalSlice";
+import withdrawModalReducer from "./slices/withdrawModalSlice";
 
 export const store = configureStore({
   reducer: {
@@ -24,6 +25,7 @@ export const store = configureStore({
     adashe: adasheReducer,
     modal: modalReducer,
     fundModal: fundModalReducer,
+    withdrawModal: withdrawModalReducer,
   },
 });
 
