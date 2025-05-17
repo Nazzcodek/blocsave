@@ -53,7 +53,7 @@ export async function joinAdasheCircle(
 
     const tx = await adasheContract.createAdashe(
       circleName,
-      50000000, //data sample hardcoded
+      1000000, //data sample hardcoded
       2,//data sample hardcoded
       "weekly",//data sample hardcoded
       "john" //a new input field with the name of the creator should be added to frontend

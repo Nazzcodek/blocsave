@@ -141,16 +141,9 @@ export async function createAdasheCircle(
 
     // First try to check if a circle with this name already exists
     try {
-      const existingAdashe = await factoryContract.getAdasheByName(circleName);
-      
-      // If we get an address that's not the zero address, the circle already exists
-      if (existingAdashe && existingAdashe !== '0x0000000000000000000000000000000000000000') {
-        logContractOperation("circleAlreadyExists", {
-          circleName,
-          existingAddress: existingAdashe
-        });
-        throw new Error(`A circle named "${circleName}" already exists`);
-      }
+      const adasheAddress = await AdasheContract.getAddress();
+    
+    
     } catch (error) {
       // If the error is not about the circle existing, ignore it
       if (!error.message.includes("already exists")) {
@@ -179,7 +172,7 @@ export async function createAdasheCircle(
         creatorName
       });
       
-      gasEstimate = await factoryContract.createAdashe.estimateGas(
+      gasEstimate = await AdasheContract.createAdashe.estimateGas(
         circleName,
         contributionInUnits, 
         members,
@@ -250,7 +243,7 @@ export async function createAdasheCircle(
       
       while (attempts < maxAttempts) {
         try {
-          tx = await factoryContract.createAdashe(
+          tx = await AdasheContract.createAdashe(
             circleName,
             contributionInUnits,
             members,
