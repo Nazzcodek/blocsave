@@ -92,6 +92,27 @@ export async function createAdasheCircle(
       signer
     );
 
+    // Adashe Contract Address
+    let AdasheContract;
+
+    try {
+      const adasheContractAddress = await factoryContract.createAdashe();
+      AdasheContract = new Contract(
+      adasheContractAddress,
+      adasheABI.abi,
+      signer
+    );
+      
+      console.log(`Created new Adashe${adasheAddress}`);
+    }
+    catch (error){
+      console.error("Error creating Adashe contract:", error);
+        throw new Error(
+          `Contract creation failed: ${
+            error.message || "Funtion may be wrong"
+          }`
+        );
+    }
     // Verify the contract by checking if it has the expected function
     try {
       const adasheAddresses = await factoryContract.getAdashes();
@@ -107,7 +128,7 @@ export async function createAdasheCircle(
 
     // Log the contract call details
     logContractOperation("createAdashe", {
-      contractAddress: ADASHE_FACTORY_ADDRESS,
+      contractAddress: AdasheContract,
       parameters: {
         circleName,
         contribution: contribution.toString(),
