@@ -26,7 +26,7 @@ export async function joinAdasheCircle(
 
     // Get the Adashe contract address by name
     try {
-      adasheAddress = await factoryContract.getAdasheByName(circleName);
+      adasheAddress =  await factoryContract.createAdashe();
 
       if (
         !adasheAddress ||
@@ -45,19 +45,26 @@ export async function joinAdasheCircle(
         throw new Error("No Adashe circles found");
       }
 
-      adasheAddress = adasheAddresses[0];
+      adasheAddress = adasheAddress;
     }
 
     // Create the contract instance
     adasheContract = new Contract(adasheAddress, adasheABI.abi, signer);
 
-    const tx = await adasheContract.joinAdashe(circleName);
+    const tx = await adasheContract.createAdashe(
+      circleName,
+      50000000, //data sample hardcoded
+      2,//data sample hardcoded
+      "weekly",//data sample hardcoded
+      "john" //a new input field with the name of the creator should be added to frontend
+    );
+
     const receipt = await tx.wait();
 
     if (onSuccess) onSuccess(receipt);
     return receipt;
   } catch (error) {
-    console.error("Failed to join Adashe circle:", error);
+    console.error("Failed to create Adashe circle:", error);
     if (onError) onError(error);
     throw error;
   }

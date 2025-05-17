@@ -128,7 +128,7 @@ export async function createAdasheCircle(
 
     // Log the contract call details
     logContractOperation("createAdashe", {
-      contractAddress: AdasheContract,
+      contractAddress: ADASHE_FACTORY_ADDRESS,
       parameters: {
         circleName,
         contribution: contribution.toString(),
