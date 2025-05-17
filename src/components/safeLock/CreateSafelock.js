@@ -6,6 +6,7 @@ import ExpectedReturns from "./ExpectedReturns";
 import { formatCurrency } from "../../utils/formatters";
 import { calculateReturns } from "../../utils/formatters";
 import { openModal } from "@/redux/slices/modalSlice";
+import { quickSafeLock } from "@/services/blockchain/useCreateLockSave";
 
 const CreateSafelock = ({ setShowActivity }) => {
   const dispatch = useDispatch();
@@ -49,13 +50,17 @@ const CreateSafelock = ({ setShowActivity }) => {
       alert("Please enter a valid amount");
       return;
     }
+     const embeddedWallet = wallets?.find(
+    (wallet) => wallet.walletClientType === "privy"
+  );
 
     // First dispatch the createSafelock action
     await dispatch(
-      createSafelock({
-        amount: parseFloat(amount),
-        duration,
-      })
+      quickSafeLock(embeddedWallet, amount, duration)
+      // createSafelock({
+      //   amount: parseFloat(amount),
+      //   duration,
+      // })
     );
 
     // Then dispatch the openModal action
