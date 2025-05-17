@@ -47,7 +47,7 @@ export async function createAdasheCircle(
   contribution,
   members,
   frequency,
-  creatorName,
+  creatorName, //a new input field in the create adashe field so creator adds their name
   onSuccess,
   onError
 ) {
@@ -171,7 +171,7 @@ export async function createAdasheCircle(
         frequency,
         creatorName
       });
-      
+      // take note this is interaction done after getting the contract address
       gasEstimate = await AdasheContract.createAdashe.estimateGas(
         circleName,
         contributionInUnits, 
