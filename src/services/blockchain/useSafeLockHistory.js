@@ -251,3 +251,43 @@ export async function getSafelockSummary(embeddedWallet) {
     };
   }
 }
+
+/**
+ * Get the locked progress for a specific safelock
+ *
+ * @param {object} embeddedWallet - Privy embedded wallet object
+ * @param {string} safeLockAddress - The address of the SafeLock contract
+ * @param {number} index - The index of the safelock to check
+ * @returns {Promise<Object>} - Object with daysPassed, totalDays, and daysRemaining
+ */
+export async function getLockedProgress(
+  embeddedWallet,
+  safeLockAddress,
+  index
+) {
+  try {
+    if (!embeddedWallet) {
+      throw new Error("Embedded wallet not found");
+    }
+
+    const provider = await embeddedWallet.getEthereumProvider();
+    const ethersProvider = new BrowserProvider(provider);
+    const signer = await ethersProvider.getSigner();
+
+    const contract = new Contract(
+      safeLockAddress,
+      SAFE_LOCK_CONTRACT_ABI,
+      signer
+    );
+
+    const progress = await contract.getLockedProgress(index);
+    return {
+      daysPassed: Number(progress[0]),
+      totalDays: Number(progress[1]),
+      daysRemaining: Number(progress[2]),
+    };
+  } catch (error) {
+    console.error("Failed to get locked progress:", error);
+    throw error;
+  }
+}

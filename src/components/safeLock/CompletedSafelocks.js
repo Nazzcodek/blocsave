@@ -1,17 +1,59 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { useWallets } from "@privy-io/react-auth";
+import { getWithdrawalHistory } from "@/services/blockchain/useSafeLockHistory";
 import SafelockCard from "./SafelockCard";
 
 const CompletedSafelocks = () => {
+  // Keep Redux state as a fallback
+  const reduxState = useSelector((state) => state.safelock) || {};
+
+  // Create local state for blockchain data
+  const [completedSafelocksData, setCompletedSafelocksData] = useState({
+    completedSafelocks: reduxState.completedSafelocks || [],
+    isLoading: true,
+    error: null,
+  });
+
   const { wallets } = useWallets();
-  const { completedSafelocks, isLoading, error } =
-    useSelector((state) => state.safelock) || {};
 
   // Get embedded wallet
   const embeddedWallet = wallets?.find(
     (wallet) => wallet.walletClientType === "privy"
   );
+
+  // Fetch completed safelock data directly from blockchain when component mounts or when wallet changes
+  useEffect(() => {
+    const fetchCompletedSafelocks = async () => {
+      if (!embeddedWallet) {
+        setCompletedSafelocksData((prev) => ({ ...prev, isLoading: false }));
+        return;
+      }
+
+      try {
+        // Get withdrawal history from blockchain
+        const completedSafelocks = await getWithdrawalHistory(embeddedWallet);
+
+        setCompletedSafelocksData({
+          completedSafelocks,
+          isLoading: false,
+          error: null,
+        });
+      } catch (error) {
+        console.error("Error fetching completed safelocks:", error);
+        setCompletedSafelocksData({
+          completedSafelocks: [],
+          isLoading: false,
+          error: error.message || "Failed to fetch completed safelocks",
+        });
+      }
+    };
+
+    fetchCompletedSafelocks();
+  }, [embeddedWallet]);
+
+  // Destructure values from local state
+  const { completedSafelocks, isLoading, error } = completedSafelocksData;
 
   // If no wallet is connected, show connect wallet message
   if (!embeddedWallet) {

@@ -1,13 +1,21 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { useWallets } from "@privy-io/react-auth";
 import { formatDate, formatCurrency } from "../../utils/formatters";
 import { breakSafelock } from "../../redux/slices/safelockSlice";
 import { openModal } from "@/redux/slices/modalSlice";
+import { getLockedProgress } from "../../services/blockchain/useSafeLockHistory";
 
 const SafelockCard = ({ safelock, safeLockAddress, index, status }) => {
   const dispatch = useDispatch();
   const { wallets } = useWallets();
+  const [progressData, setProgressData] = useState({
+    daysPassed: 0,
+    totalDays: 30,
+    daysRemaining: 30,
+    loading: true,
+    error: null,
+  });
 
   // Format data from blockchain
   const {
@@ -20,19 +28,63 @@ const SafelockCard = ({ safelock, safeLockAddress, index, status }) => {
 
   // Calculate derived values
   const createdOn = date instanceof Date ? date : new Date(date * 1000);
+
+  // Use the progress data from blockchain, fallback to redux data
+  const { daysPassed: progressDays, totalDays: progressTotal } = progressData;
+
+  // Convert lock period to days if it's a large timestamp in seconds
+  const lockPeriodInDays =
+    progressTotal ||
+    (lockPeriod > 1000 ? Math.round(lockPeriod / (24 * 60 * 60)) : lockPeriod);
+
   const maturityDate = new Date(
-    createdOn.getTime() + lockPeriod * 24 * 60 * 60 * 1000
+    createdOn.getTime() + lockPeriodInDays * 24 * 60 * 60 * 1000
   );
+  // For completed safelocks, set the completion date
+  const completedOn = status === "paid" ? new Date(safelock.date) : null;
   const interestRate = 6; // This is hardcoded based on business rules, could be calculated
-  const progressDays = daysPassed;
-  const progressTotal = lockPeriod;
-  const expectedReturn = ((amount * interestRate) / 100) * (lockPeriod / 30);
+  const expectedReturn =
+    ((amount * interestRate) / 100) * (lockPeriodInDays / 30);
   const payoutAmount = amount + expectedReturn;
 
   // Get embedded wallet
   const embeddedWallet = wallets?.find(
     (wallet) => wallet.walletClientType === "privy"
   );
+
+  // Fetch accurate lock progress data from blockchain
+  useEffect(() => {
+    const fetchProgressData = async () => {
+      if (!embeddedWallet || !safeLockAddress || index === undefined) {
+        setProgressData((prev) => ({ ...prev, loading: false }));
+        return;
+      }
+
+      try {
+        const progress = await getLockedProgress(
+          embeddedWallet,
+          safeLockAddress,
+          index
+        );
+        setProgressData({
+          ...progress,
+          loading: false,
+          error: null,
+        });
+      } catch (error) {
+        console.error("Error fetching lock progress:", error);
+        setProgressData({
+          daysPassed: 0,
+          totalDays: lockPeriod || 30,
+          daysRemaining: lockPeriod || 30,
+          loading: false,
+          error: error.message,
+        });
+      }
+    };
+
+    fetchProgressData();
+  }, [embeddedWallet, safeLockAddress, index, lockPeriod]);
 
   const handleBreakSafelock = () => {
     if (!embeddedWallet) {
@@ -112,7 +164,7 @@ const SafelockCard = ({ safelock, safeLockAddress, index, status }) => {
       {/* Header section */}
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center space-x-3">
-          <span className="text-xl font-bold">{formatCurrency(amount)}</span>
+          <span className="text-xl font-bold">${amount.toFixed(2)}</span>
           {getStatusBadge()}
         </div>
         <button
@@ -150,7 +202,7 @@ const SafelockCard = ({ safelock, safeLockAddress, index, status }) => {
         />
         Created on {formatDate(createdOn)}
         <span className="ml-2 bg-[#e6f7f1] text-[#079669] text-xs px-2 py-0.5 rounded-md">
-          {progressTotal} Days
+          {progressTotal} {progressTotal === 1 ? "Day" : "Days"}
         </span>
       </div>
 
@@ -197,7 +249,9 @@ const SafelockCard = ({ safelock, safeLockAddress, index, status }) => {
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-500 text-sm">Completed on</span>
-              <span className="font-medium">{formatDate(completedOn)}</span>
+              <span className="font-medium">
+                {formatDate(completedOn || maturityDate)}
+              </span>
             </div>
           </>
         )}
@@ -207,15 +261,30 @@ const SafelockCard = ({ safelock, safeLockAddress, index, status }) => {
       <div className="mt-4">
         <div className="flex justify-between mb-1 text-xs">
           <span>Progress</span>
-          <span>
-            {progressDays} day of {progressTotal}days ({progressPercentage}%)
-          </span>
+          {progressData.loading ? (
+            <span>Loading progress data...</span>
+          ) : progressData.error ? (
+            <span>Error loading progress</span>
+          ) : (
+            <span>
+              {progressDays} {progressDays === 1 ? "day" : "days"} of{" "}
+              {progressTotal} {progressTotal === 1 ? "day" : "days"} (
+              {progressPercentage}%)
+            </span>
+          )}
         </div>
         <div className="w-full bg-gray-100 rounded-full h-1.5">
-          <div
-            className="bg-[#079669] h-1.5 rounded-full"
-            style={{ width: `${progressPercentage}%` }}
-          ></div>
+          {progressData.loading ? (
+            <div
+              className="bg-gray-300 h-1.5 rounded-full animate-pulse"
+              style={{ width: "100%" }}
+            ></div>
+          ) : (
+            <div
+              className="bg-[#079669] h-1.5 rounded-full"
+              style={{ width: `${progressPercentage}%` }}
+            ></div>
+          )}
         </div>
       </div>
     </div>
