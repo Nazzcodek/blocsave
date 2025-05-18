@@ -201,7 +201,7 @@ const BalanceSummary = () => {
         </Card>
       </div>
 
-      <div className="w-full">
+      {/* <div className="w-full">
         <Card className="bg-white h-full min-h-[200px]" noPadding>
           <div className="p-4 sm:p-6 flex flex-col h-full">
             <h3 className="text-sm font-medium text-gray-500 mb-1">
@@ -246,7 +246,7 @@ const BalanceSummary = () => {
             </div>
           </div>
         </Card>
-      </div>
+      </div> */}
     </div>
   );
 };

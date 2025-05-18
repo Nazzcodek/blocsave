@@ -31,10 +31,10 @@ export async function getSavingHistory(embeddedWallet) {
 
     // Format the response to match our application's expected format
     return savingHistory.map((item, index) => {
-      // Ensure we have a valid date by checking if timestamp is valid
+      // Ensure we have a valid date by checking if date field is valid
       let date = new Date();
-      if (item.timestamp && typeof item.timestamp.toString === "function") {
-        const timestamp = Number(item.timestamp.toString());
+      if (item.date && typeof item.date.toString === "function") {
+        const timestamp = Number(item.date.toString());
         if (!isNaN(timestamp) && timestamp > 0) {
           date = new Date(timestamp * 1000); // Convert seconds to milliseconds
         }
@@ -42,8 +42,8 @@ export async function getSavingHistory(embeddedWallet) {
 
       // Ensure we have a valid transaction hash
       const txHash =
-        item.transactionHash && item.transactionHash !== "0x"
-          ? item.transactionHash
+        item.txId && item.txId !== "0x"
+          ? item.txId
           : `save-${userAddress.slice(0, 6)}-${Date.now()}-${index}`;
 
       return {
@@ -88,10 +88,10 @@ export async function getWithdrawalHistory(embeddedWallet) {
 
     // Format the response to match our application's expected format
     return withdrawalHistory.map((item, index) => {
-      // Ensure we have a valid date by checking if timestamp is valid
+      // Ensure we have a valid date by checking if date field is valid
       let date = new Date();
-      if (item.timestamp && typeof item.timestamp.toString === "function") {
-        const timestamp = Number(item.timestamp.toString());
+      if (item.date && typeof item.date.toString === "function") {
+        const timestamp = Number(item.date.toString());
         if (!isNaN(timestamp) && timestamp > 0) {
           date = new Date(timestamp * 1000); // Convert seconds to milliseconds
         }
@@ -99,8 +99,8 @@ export async function getWithdrawalHistory(embeddedWallet) {
 
       // Ensure we have a valid transaction hash
       const txHash =
-        item.transactionHash && item.transactionHash !== "0x"
-          ? item.transactionHash
+        item.txId && item.txId !== "0x"
+          ? item.txId
           : `withdraw-${userAddress.slice(0, 6)}-${Date.now()}-${index}`;
 
       return {

@@ -5,13 +5,15 @@ import Link from "next/link";
 import Card from "@/components/common/Card";
 import Image from "next/image";
 import { getQuickSaveBalance } from "@/services/blockchain/useQuickSaveBalance";
+import { getSafelockSummary } from "@/services/blockchain/useSafeLockHistory";
 
 const ProductCard = ({ product, actualBalance }) => {
   const { type, description } = product;
 
-  // Use actualBalance if available (for QuickSave), otherwise use the product balance
+  // Use actualBalance if available (for QuickSave or SafeLock), otherwise use the product balance
   const balance =
-    type.toLowerCase() === "quicksave" && actualBalance !== null
+    (type.toLowerCase() === "quicksave" || type.toLowerCase() === "safelock") &&
+    actualBalance !== null
       ? actualBalance
       : product.balance;
 
@@ -71,9 +73,8 @@ const ProductCard = ({ product, actualBalance }) => {
     }
   };
 
-  // Display loading state if the type is quicksave and balanceLoading is true
-  const isLoading =
-    type.toLowerCase() === "quicksave" && product.balanceLoading;
+  // Display loading state if the product is loading its balance
+  const isLoading = product.balanceLoading;
 
   return (
     <Link href={`/${type.toLowerCase()}`}>
@@ -116,17 +117,20 @@ const SavingsProducts = () => {
   const { savingsProducts } = useSelector((state) => state.dashboard);
   const { wallets } = useWallets();
   const [quickSaveBalance, setQuickSaveBalance] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [safeLockBalance, setSafeLockBalance] = useState(null);
+  const [isLoadingQuickSave, setIsLoadingQuickSave] = useState(true);
+  const [isLoadingSafeLock, setIsLoadingSafeLock] = useState(true);
+
+  // Get the embedded wallet
+  const embeddedWallet = wallets?.find(
+    (wallet) => wallet.walletClientType === "privy"
+  );
 
   // Fetch actual QuickSave balance from blockchain
   useEffect(() => {
     const fetchQuickSaveBalance = async () => {
       try {
-        setIsLoading(true);
-        const embeddedWallet = wallets?.find(
-          (wallet) => wallet.walletClientType === "privy"
-        );
-
+        setIsLoadingQuickSave(true);
         if (embeddedWallet) {
           const balance = await getQuickSaveBalance(embeddedWallet);
           setQuickSaveBalance(balance);
@@ -134,7 +138,7 @@ const SavingsProducts = () => {
       } catch (error) {
         console.error("Error fetching QuickSave balance:", error);
       } finally {
-        setIsLoading(false);
+        setIsLoadingQuickSave(false);
       }
     };
 
@@ -143,16 +147,49 @@ const SavingsProducts = () => {
     // Refresh every 30 seconds
     const intervalId = setInterval(fetchQuickSaveBalance, 30000);
     return () => clearInterval(intervalId);
-  }, [wallets]);
+  }, [embeddedWallet]);
+
+  // Fetch actual SafeLock balance from blockchain
+  useEffect(() => {
+    const fetchSafeLockBalance = async () => {
+      try {
+        setIsLoadingSafeLock(true);
+        if (embeddedWallet) {
+          const summary = await getSafelockSummary(embeddedWallet);
+          setSafeLockBalance(summary.totalBalance);
+        }
+      } catch (error) {
+        console.error("Error fetching SafeLock balance:", error);
+      } finally {
+        setIsLoadingSafeLock(false);
+      }
+    };
+
+    fetchSafeLockBalance();
+
+    // Refresh every 30 seconds
+    const intervalId = setInterval(fetchSafeLockBalance, 30000);
+    return () => clearInterval(intervalId);
+  }, [embeddedWallet]);
 
   // Add loading and actual balance data to products
   const enhancedProducts = savingsProducts.map((product) => {
-    if (product.type.toLowerCase() === "quicksave") {
+    const productType = product.type.toLowerCase();
+
+    if (productType === "quicksave") {
       return {
         ...product,
-        balanceLoading: isLoading,
+        balanceLoading: isLoadingQuickSave,
       };
     }
+
+    if (productType === "safelock") {
+      return {
+        ...product,
+        balanceLoading: isLoadingSafeLock,
+      };
+    }
+
     return product;
   });
 
@@ -167,6 +204,8 @@ const SavingsProducts = () => {
             actualBalance={
               product.type.toLowerCase() === "quicksave"
                 ? quickSaveBalance
+                : product.type.toLowerCase() === "safelock"
+                ? safeLockBalance
                 : null
             }
           />

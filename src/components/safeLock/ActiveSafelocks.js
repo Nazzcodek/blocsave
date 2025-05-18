@@ -1,26 +1,62 @@
-import React, { useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import React, { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
 import { useWallets } from "@privy-io/react-auth";
-import { fetchSafelockData } from "@/redux/slices/safelockSlice";
+import { getLockedSaving } from "@/services/blockchain/useSafeLockHistory";
 import SafelockCard from "./SafelockCard";
 
 const ActiveSafelocks = () => {
-  const dispatch = useDispatch();
+  // Keep Redux state as a fallback
+  const reduxState = useSelector((state) => state.safelock) || {};
+
+  // Create local state for blockchain data
+  const [activeSafelocksData, setActiveSafelocksData] = useState({
+    activeSafelocks: reduxState.activeSafelocks || [],
+    isLoading: true,
+    error: null,
+  });
+
   const { wallets } = useWallets();
-  const { activeSafelocks, isLoading, error } =
-    useSelector((state) => state.safelock) || {};
 
   // Get embedded wallet
   const embeddedWallet = wallets?.find(
     (wallet) => wallet.walletClientType === "privy"
   );
 
-  // Fetch safelock data when component mounts or when wallet changes
+  // Fetch safelock data directly from blockchain when component mounts or when wallet changes
   useEffect(() => {
-    if (embeddedWallet) {
-      dispatch(fetchSafelockData(embeddedWallet));
-    }
-  }, [dispatch, embeddedWallet]);
+    const fetchActiveSafelocks = async () => {
+      if (!embeddedWallet) {
+        setActiveSafelocksData((prev) => ({ ...prev, isLoading: false }));
+        return;
+      }
+
+      try {
+        // Get locked savings from blockchain
+        const allSavelocks = await getLockedSaving(embeddedWallet);
+
+        // Filter for active savelocks (not withdrawn)
+        const activeSafelocks = allSavelocks.filter((lock) => !lock.withdrawn);
+
+        setActiveSafelocksData({
+          activeSafelocks,
+          isLoading: false,
+          error: null,
+        });
+      } catch (error) {
+        console.error("Error fetching active safelocks:", error);
+        setActiveSafelocksData({
+          activeSafelocks: [],
+          isLoading: false,
+          error: error.message || "Failed to fetch active safelocks",
+        });
+      }
+    };
+
+    fetchActiveSafelocks();
+  }, [embeddedWallet]);
+
+  // Destructure values from local state
+  const { activeSafelocks, isLoading, error } = activeSafelocksData;
 
   // If no wallet is connected, show connect wallet message
   if (!embeddedWallet) {
