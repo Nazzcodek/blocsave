@@ -1,12 +1,13 @@
 import { BrowserProvider } from "ethers";
 import { getQuickSaveBalance } from "./useQuickSaveBalance";
-import { getAllTransactionHistory } from "./useQuickSaveHistory";
+import { getAllTransactionHistory as QuickSave } from "./useQuickSaveHistory";
+import { getAllTransactionHistory as SafeLock } from "./useSafeLockHistory";
 
 // Base block explorer API URL for Sepolia testnet
 const BASE_API_URL = "https://sepolia.base.org";
 
 /**
- * Fetches all wallet transactions including USDC transfers and QuickSave transactions
+ * Fetches all wallet transactions including USDC transfers, QuickSave and SafeLock transactions
  *
  * @param {object} embeddedWallet - Privy embedded wallet object
  * @param {number} limit - Maximum number of transactions to return (default 20)
@@ -25,12 +26,13 @@ export async function fetchWalletTransactions(embeddedWallet, limit = 20) {
     const userAddress = await signer.getAddress();
 
     // Get QuickSave transactions (these are already formatted properly)
-    const quickSaveTransactions = await getAllTransactionHistory(
-      embeddedWallet
-    );
+    const quickSaveTransactions = await QuickSave(embeddedWallet);
+
+    // Get SafeLock transactions (these are already formatted properly)
+    const safeLockTransactions = await SafeLock(embeddedWallet);
 
     // Format transactions into standard format
-    const formattedTransactions = quickSaveTransactions.map((tx) => ({
+    const formattedQuickSaveTransactions = quickSaveTransactions.map((tx) => ({
       id: tx.id,
       from: tx.from,
       to: tx.to,
@@ -41,8 +43,26 @@ export async function fetchWalletTransactions(embeddedWallet, limit = 20) {
       type: tx.type,
     }));
 
+    // Format SafeLock transactions into the same standard format
+    const formattedSafeLockTransactions = safeLockTransactions.map((tx) => ({
+      id: tx.id,
+      from: tx.from,
+      to: tx.to,
+      amount: tx.amount,
+      date: tx.date,
+      transactionId: tx.transactionId,
+      status: "Completed",
+      type: tx.type,
+    }));
+
+    // Combine all transactions
+    const allTransactions = [
+      ...formattedQuickSaveTransactions,
+      ...formattedSafeLockTransactions,
+    ];
+
     // Sort by date (newest first) and limit results
-    return formattedTransactions
+    return allTransactions
       .sort((a, b) => new Date(b.date) - new Date(a.date))
       .slice(0, limit);
   } catch (error) {

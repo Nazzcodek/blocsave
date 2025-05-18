@@ -73,12 +73,6 @@ const SafelockPage = () => {
             <CompletedSafelocks />
           </div>
         )}
-        {/* Error notification */}
-        {error && (
-          <div className="bg-red-50 p-4 rounded-md">
-            <p className="text-red-600">Error: {error}</p>
-          </div>
-        )}
       </div>
     </>
   );

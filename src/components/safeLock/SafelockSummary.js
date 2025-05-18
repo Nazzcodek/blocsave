@@ -1,12 +1,63 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { formatCurrency } from "../../utils/formatters";
+import { getSafelockSummary } from "../../services/blockchain/useSafeLockHistory";
+import { usePrivy } from "@privy-io/react-auth";
+import { useWallets } from "@privy-io/react-auth";
 
 const SafelockSummary = () => {
-  const safelockState = useSelector((state) => state.safelock) || {};
-  const totalBalance = safelockState.totalBalance || 0;
-  const activeLocks = safelockState.activeLocks || 0;
-  const isLoading = safelockState.isLoading;
+  // Keep Redux state as a fallback
+  const safelockReduxState = useSelector((state) => state.safelock) || {};
+
+  // Create local state for blockchain data
+  const [summaryData, setSummaryData] = useState({
+    totalBalance: safelockReduxState.totalBalance || 0,
+    activeLocks: safelockReduxState.activeLocks || 0,
+    isLoading: true,
+    error: null,
+  });
+
+  const { authenticated, ready } = usePrivy();
+  const { wallets } = useWallets();
+
+  useEffect(() => {
+    const fetchSafelockData = async () => {
+      try {
+        // Only fetch if user is authenticated and wallets are available
+        if (authenticated && ready && wallets && wallets.length > 0) {
+          // Find the embedded wallet from Privy
+          const embeddedWallet = wallets.find(
+            (wallet) => wallet.walletClientType === "privy"
+          );
+
+          if (embeddedWallet) {
+            // Fetch data from blockchain
+            const summary = await getSafelockSummary(embeddedWallet);
+            setSummaryData(summary);
+          } else {
+            setSummaryData((prev) => ({ ...prev, isLoading: false }));
+          }
+        } else {
+          // If not authenticated, stop loading but keep using redux data
+          setSummaryData((prev) => ({ ...prev, isLoading: false }));
+        }
+      } catch (error) {
+        console.error("Error fetching safelock data:", error);
+        setSummaryData((prev) => ({
+          ...prev,
+          isLoading: false,
+          error: error.message,
+        }));
+      }
+    };
+
+    fetchSafelockData();
+  }, [authenticated, ready, wallets]);
+
+  // Use blockchain data or fallback to Redux
+  const totalBalance = summaryData.totalBalance;
+  const activeLocks = summaryData.activeLocks;
+  const isLoading = summaryData.isLoading;
 
   return (
     <div className="bg-[#D1FAE5] rounded-lg p-6 shadow-sm">

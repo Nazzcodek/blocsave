@@ -1,18 +1,22 @@
 import { BrowserProvider, Contract } from "ethers";
 import { formatUnits } from "ethers";
-import quicksave from "../../ABI/QuickSave.json";
+import safelock from "../../ABI/SafeLock.json";
 
-const QUICK_SAVE_CONTRACT_ABI = quicksave.abi;
-const QUICK_SAVE_CONTRACT_ADDRESS =
-  "0x1712ba39632f01d236cd1084f771a679b7cbd846";
+const SAFE_LOCK_CONTRACT_ABI = safelock.abi;
+const SAFE_LOCK_CONTRACT_ADDRESS = "0x862473108b70afc86861e0cf4101010B95554184";
+const USDC_CONTRACT = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
+
+const erc20ABI = [
+  "function balanceOf(address account) external view returns (uint256)",
+];
 
 /**
- * Fetches the QuickSave balance for a user from the blockchain
+ * Fetches the safelock balance for a user from the blockchain
  *
  * @param {object} embeddedWallet - Privy embedded wallet object
- * @returns {Promise<number>} - QuickSave balance in USDC
+ * @returns {Promise<number>} - safelock balance in USDC
  */
-export async function getQuickSaveBalance(embeddedWallet) {
+export async function getSafeLockBalance(embeddedWallet) {
   try {
     if (!embeddedWallet) {
       return 0;
@@ -23,21 +27,21 @@ export async function getQuickSaveBalance(embeddedWallet) {
     const signer = await ethersProvider.getSigner();
     const userAddress = await signer.getAddress();
 
-    // Call the contract to get user's QuickSave balance
+    // Call the contract to get user's safelock balance
     const contract = new Contract(
-      QUICK_SAVE_CONTRACT_ADDRESS,
-      QUICK_SAVE_CONTRACT_ABI,
+      SAFE_LOCK_CONTRACT_ADDRESS,
+      SAFE_LOCK_CONTRACT_ABI,
       signer
     );
 
     // Use the userBalance function or any appropriate function from your contract
-    // Based on your QuickSave contract interface
+    // Based on your safelock contract interface
     const balance = await contract.userBalance(userAddress);
 
     // Convert from wei to USDC (assuming 6 decimals for USDC)
     return Number(formatUnits(balance, 6));
   } catch (error) {
-    console.error("Failed to fetch QuickSave balance:", error);
+    console.error("Failed to fetch safelock balance:", error);
 
     // Try alternative methods if the first one fails
     try {
@@ -47,31 +51,31 @@ export async function getQuickSaveBalance(embeddedWallet) {
       const userAddress = await signer.getAddress();
 
       const contract = new Contract(
-        QUICK_SAVE_CONTRACT_ADDRESS,
-        QUICK_SAVE_CONTRACT_ABI,
+        SAFE_LOCK_CONTRACT_ADDRESS,
+        SAFE_LOCK_CONTRACT_ABI,
         signer
       );
 
       // Try alternative function names that might exist in the contract
       // If your contract has a different function name to get user balance, use it here
-      const savingsHistory = await contract.getSavingHistory(userAddress);
+      const savingsHistory = await contract.getLockedSaving(userAddress);
       const withdrawalHistory = await contract.getWithdrawalHistory(
         userAddress
       );
 
       // Calculate balance from transaction history
-      let totalSaved = 0;
+      let totalSAFEd = 0;
       let totalWithdrawn = 0;
 
       for (const saving of savingsHistory) {
-        totalSaved += Number(formatUnits(saving.amount, 6));
+        totalSAFEd += Number(formatUnits(saving.amount, 6));
       }
 
       for (const withdrawal of withdrawalHistory) {
         totalWithdrawn += Number(formatUnits(withdrawal.amount, 6));
       }
 
-      return totalSaved - totalWithdrawn;
+      return totalSAFEd - totalWithdrawn;
     } catch (fallbackError) {
       console.error("Failed to calculate balance from history:", fallbackError);
       return 0;

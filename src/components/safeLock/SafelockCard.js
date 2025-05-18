@@ -1,29 +1,65 @@
 import React from "react";
 import { useDispatch } from "react-redux";
+import { useWallets } from "@privy-io/react-auth";
 import { formatDate, formatCurrency } from "../../utils/formatters";
 import { breakSafelock } from "../../redux/slices/safelockSlice";
+import { openModal } from "@/redux/slices/modalSlice";
 
-const SafelockCard = ({ safelock, status }) => {
+const SafelockCard = ({ safelock, safeLockAddress, index, status }) => {
   const dispatch = useDispatch();
+  const { wallets } = useWallets();
+
+  // Format data from blockchain
   const {
-    id,
-    amount,
-    interestRate,
-    createdOn,
-    maturityDate,
-    expectedReturn,
-    payoutAmount,
-    completedOn,
-    progressDays,
-    progressTotal,
+    amount = 0,
+    date = new Date(),
+    daysPassed = 0,
+    lockPeriod = 30,
+    withdrawn = false,
   } = safelock;
 
+  // Calculate derived values
+  const createdOn = date instanceof Date ? date : new Date(date * 1000);
+  const maturityDate = new Date(
+    createdOn.getTime() + lockPeriod * 24 * 60 * 60 * 1000
+  );
+  const interestRate = 6; // This is hardcoded based on business rules, could be calculated
+  const progressDays = daysPassed;
+  const progressTotal = lockPeriod;
+  const expectedReturn = ((amount * interestRate) / 100) * (lockPeriod / 30);
+  const payoutAmount = amount + expectedReturn;
+
+  // Get embedded wallet
+  const embeddedWallet = wallets?.find(
+    (wallet) => wallet.walletClientType === "privy"
+  );
+
   const handleBreakSafelock = () => {
+    if (!embeddedWallet) {
+      dispatch(
+        openModal({
+          modalType: "INFO_MODAL",
+          modalProps: {
+            title: "Wallet Not Connected",
+            message:
+              "Please connect your wallet to withdraw your safelock funds.",
+          },
+        })
+      );
+      return;
+    }
+
     if (status === "completed") {
       if (
         confirm("Are you sure you want to withdraw this completed safelock?")
       ) {
-        dispatch(breakSafelock(id));
+        dispatch(
+          breakSafelock({
+            embeddedWallet,
+            safeLockAddress,
+            index,
+          })
+        );
       }
     } else if (status === "active") {
       if (
@@ -31,7 +67,13 @@ const SafelockCard = ({ safelock, status }) => {
           "Are you sure you want to break this safelock early? You may lose some interest."
         )
       ) {
-        dispatch(breakSafelock(id));
+        dispatch(
+          breakSafelock({
+            embeddedWallet,
+            safeLockAddress,
+            index,
+          })
+        );
       }
     }
   };

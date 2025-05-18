@@ -6,7 +6,7 @@ import Image from "next/image";
 import Card from "@/components/common/Card";
 import { openModal } from "@/redux/slices/modalSlice";
 import { openFundModal } from "@/redux/slices/fundModalSlice";
-import { getWalletUSDCBalance } from "@/services/blockchain/useQuickSaveBalance";
+import { getWalletUSDCBalance } from "@/services/blockchain/useWalletUSDCBalance";
 import { getQuickSaveBalance } from "@/services/blockchain/useQuickSaveBalance";
 
 // Custom version of ActionButton for the Balance cards
