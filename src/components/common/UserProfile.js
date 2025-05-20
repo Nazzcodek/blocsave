@@ -1,6 +1,7 @@
 import { usePrivy } from "@privy-io/react-auth";
 import React from "react";
 import { useRouter } from "next/router";
+import Image from "next/image";
 
 const UserProfile = () => {
   const { ready, authenticated, user, logout } = usePrivy();
@@ -19,10 +20,14 @@ const UserProfile = () => {
     <div className="flex flex-col">
       <div className="flex items-center mb-4 p-3 rounded-lg hover:bg-gray-50">
         {user?.avatarUrl ? (
-          <img
+          <Image
             src={user.avatarUrl}
             alt="User Avatar"
+            width={40}
+            height={40}
             className="w-10 h-10 rounded-full mr-3"
+            style={{ objectFit: "cover" }}
+            unoptimized={false}
           />
         ) : (
           <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center mr-3">

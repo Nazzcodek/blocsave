@@ -3,7 +3,7 @@ import ReactDOM from "react-dom";
 import { useDispatch } from "react-redux";
 import { closeModal, openModal } from "../../redux/slices/modalSlice";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
-import { joinAdasheCircle } from "../../services/blockchain/useAdasheContract";
+import { joinAdasheCircle } from "../../services/blockchain/useAdashe";
 
 const JoinGroupModal = ({
   title = "Join a Savings Group",

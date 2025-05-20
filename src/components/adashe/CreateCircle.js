@@ -19,6 +19,7 @@ const CreateCircleForm = () => {
   const [tempMemberCount, setTempMemberCount] = useState("");
   const [frequency, setFrequency] = useState("Weekly");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [creationStep, setCreationStep] = useState(0); // 0: not started, 1: creating address, 2: creating circle
 
   // Constants
   const totalPeriods = memberCount;
@@ -56,6 +57,7 @@ const CreateCircleForm = () => {
   const handleCreateCircle = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setCreationStep(0);
 
     try {
       if (!authenticated) {
@@ -115,6 +117,21 @@ const CreateCircleForm = () => {
       // Start debugging the create circle operation
       debugStart("createCircle", circleData);
 
+      // Show step 1 in progress - creating Adashe contract
+      setCreationStep(1);
+
+      // Show modal indicating step 1 is in progress
+      dispatch(
+        openModal({
+          modalType: "INFO_MODAL",
+          modalProps: {
+            title: "Creating Adashe Contract",
+            message:
+              "Step 1 of 2: Creating a new Adashe contract. Please confirm the transaction in your wallet.",
+          },
+        })
+      );
+
       // Dispatch the createCircle action with the wallet
       const result = await dispatch(
         createCircle({
@@ -123,19 +140,22 @@ const CreateCircleForm = () => {
         })
       ).unwrap();
 
-      // If we have a transaction hash, monitor it for confirmation
+      // Update to step 2 - creating Adashe circle
+      setCreationStep(2);
+
+      // If we have transaction receipts, monitor them for confirmation
       if (result?.receipt?.hash) {
         const provider = await embeddedWallet.getEthereumProvider();
         const ethersProvider = new BrowserProvider(provider);
 
-        // Show that transaction is pending
+        // Show that the second transaction is complete
         dispatch(
           openModal({
             modalType: "INFO_MODAL",
             modalProps: {
-              title: "Transaction Submitted",
+              title: "Circle Created Successfully",
               message:
-                "Your transaction has been submitted to the blockchain and is being processed.",
+                "Your Adashe circle has been created and is being confirmed on the blockchain.",
             },
           })
         );
@@ -164,38 +184,53 @@ const CreateCircleForm = () => {
         throw new Error("Failed to create circle");
       }
 
-      // Now open modal with code that can be copied
-      // Use the actual circle address/ID from the blockchain if available
-      const circleCode = result.newCircle?.invitationCode || circleData.name;
+      // Now open modal with invitation code that can be copied
+      // Use the actual circle address/ID from the blockchain
+      const circleCode =
+        result.newCircle?.invitationCode ||
+        `${circleName}${result.newCircle?.id.slice(0, 6)}`;
+      const circleAddress =
+        result.newCircle?.contractAddress || result.newCircle?.id;
 
       dispatch(
         openModal({
           modalType: "ADASHE_CREATION_SUCCESS",
           modalProps: {
             code: circleCode,
+            address: circleAddress,
+            name: circleName,
+            frequency: frequency,
+            amount: contributionAmount,
+            members: memberCount,
           },
         })
       );
+      setCreationStep(0);
       setIsSubmitting(false);
     } catch (error) {
       console.error("Error creating circle:", error);
 
       // Create a more user-friendly error message
       let errorMessage = error.message || "Unknown error";
+      let errorStep = "creating your Adashe circle";
+
+      if (creationStep === 1) {
+        errorStep = "creating the Adashe contract";
+      } else if (creationStep === 2) {
+        errorStep = "initializing the Adashe circle";
+      }
 
       // Handle specific error messages
       if (errorMessage.includes("missing revert data")) {
-        errorMessage =
-          "The transaction was reverted by the blockchain. This could be due to contract restrictions or network issues.";
+        errorMessage = `The transaction was reverted by the blockchain while ${errorStep}. This could be due to contract restrictions or network issues.`;
       } else if (errorMessage.includes("insufficient funds")) {
-        errorMessage =
-          "You don't have enough ETH to pay for the transaction gas fee.";
+        errorMessage = `You don't have enough ETH to pay for the transaction gas fee while ${errorStep}.`;
       } else if (errorMessage.includes("user rejected")) {
-        errorMessage = "You rejected the transaction in your wallet.";
+        errorMessage = `You rejected the transaction in your wallet while ${errorStep}.`;
       }
 
       // Use a better modal with more detailed information and possible solutions
-      const errorTitle = "Failed to Create Circle";
+      const errorTitle = `Failed to Create Circle (Step ${creationStep})`;
       let possibleSolutions = [];
 
       // Add custom solutions based on the error message
@@ -236,6 +271,7 @@ const CreateCircleForm = () => {
         })
       );
 
+      setCreationStep(0);
       setIsSubmitting(false);
     }
   };
@@ -391,7 +427,11 @@ const CreateCircleForm = () => {
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
               ></path>
             </svg>
-            Processing...
+            {creationStep === 1
+              ? "Step 1: Creating Contract..."
+              : creationStep === 2
+              ? "Step 2: Creating Circle..."
+              : "Processing..."}
           </div>
         ) : (
           <>
@@ -404,6 +444,14 @@ const CreateCircleForm = () => {
           </>
         )}
       </button>
+
+      {isSubmitting && (
+        <div className="mt-4 text-center text-sm text-gray-500">
+          {creationStep === 0 && "Initializing..."}
+          {creationStep === 1 && "Creating circle address..."}
+          {creationStep === 2 && "Funding circle..."}
+        </div>
+      )}
     </form>
   );
 };

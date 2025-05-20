@@ -9,7 +9,7 @@ export default function Home() {
 
   useEffect(() => {
     // Redirect to the login page
-    router.push("/home/index");
+    router.push("/home");
   }, [router]);
 
   return (
