@@ -51,9 +51,8 @@ const CreateSafelock = ({ setShowActivity }) => {
 
       setIsLoadingBalance(true);
       try {
-        const balance = await getWalletUSDCBalance(embeddedWallet);
-        console.log("Wallet USDC Balance:", balance);
-        setWalletBalance(balance);
+        const walletUsdcBalance = await getWalletUSDCBalance(embeddedWallet);
+        setWalletBalance(walletUsdcBalance);
       } catch (error) {
         console.error("Error fetching wallet balance:", error);
       } finally {

@@ -95,14 +95,7 @@ export async function createSafelockAddress(
 
     if (!newSafeLockAddress) {
       // Fallback method if event not found: get the latest address
-      console.log(
-        "[createSafelockAddress] No address in event, getting all safelocks..."
-      );
       const safeLockAddresses = await factoryContract.getSafeLocks();
-      console.log(
-        "[createSafelockAddress] All safelock addresses:",
-        safeLockAddresses
-      );
       if (safeLockAddresses && safeLockAddresses.length > 0) {
         newSafeLockAddress = safeLockAddresses[safeLockAddresses.length - 1];
         console.log(
