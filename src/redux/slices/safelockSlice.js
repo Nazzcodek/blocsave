@@ -9,7 +9,7 @@ import {
   getWithdrawalHistory,
   getAllTransactionHistory,
 } from "../../services/blockchain/useSafeLockHistory";
-import { getWalletUSDCBalance } from "../../services/blockchain/useWalletUSDCBalance";
+import getWalletUSDCBalance from "../../services/blockchain/useWalletUSDCBalance";
 
 // Async thunks
 export const fetchSafelockData = createAsyncThunk(

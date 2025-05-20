@@ -7,7 +7,7 @@ import {
   resetSafeLockCreation,
   setDuration,
 } from "@/redux/slices/safelockSlice";
-import { getWalletUSDCBalance } from "../../services/blockchain/useWalletUSDCBalance";
+import getWalletUSDCBalance from "@/services/blockchain/useWalletUSDCBalance";
 import LockDurationOptions from "./LockDurationOptions";
 import ExpectedReturns from "./ExpectedReturns";
 import { formatCurrency, calculateReturns } from "@/utils/formatters";

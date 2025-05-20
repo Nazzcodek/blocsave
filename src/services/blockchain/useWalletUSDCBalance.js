@@ -13,7 +13,7 @@ const erc20ABI = [
  * @param {object} embeddedWallet - Privy embedded wallet object
  * @returns {Promise<number>} - USDC balance in user's wallet
  */
-export async function getWalletUSDCBalance(embeddedWallet) {
+async function getWalletUSDCBalance(embeddedWallet) {
   try {
     if (!embeddedWallet) {
       return 0;
@@ -35,3 +35,5 @@ export async function getWalletUSDCBalance(embeddedWallet) {
     return 0;
   }
 }
+
+export default getWalletUSDCBalance;

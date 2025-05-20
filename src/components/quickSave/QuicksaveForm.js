@@ -9,7 +9,7 @@ import {
   quickSave,
   withdrawQuickSave,
 } from "@/services/blockchain/useCreateQuickSave";
-import { getWalletUSDCBalance } from "@/services/blockchain/useWalletUSDCBalance";
+import getWalletUSDCBalance from "@/services/blockchain/useWalletUSDCBalance";
 import { getQuickSaveBalance } from "@/services/blockchain/useQuickSaveBalance";
 import { useWallets } from "@privy-io/react-auth";
 import WithdrawalConfirmation from "./WithdrawalConfirmation";
