@@ -1,15 +1,18 @@
 import React, { useState } from "react";
 import { useDispatch } from "react-redux";
-import { openModal } from "../../redux/slices/modalSlice";
 import ContributeModal from "./ContributeModal";
+import Image from "next/image";
 
 const InvitationCode = ({ circle }) => {
-  if (!circle) return null;
-
-  const { invitationCode, members } = circle;
+  // Move all hooks to the top level before any conditional returns
   const [copied, setCopied] = useState(false);
   const [showContributeModal, setShowContributeModal] = useState(false);
   const dispatch = useDispatch();
+
+  // Return early after all hooks are called
+  if (!circle) return null;
+
+  const { invitationCode, members = [] } = circle;
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(invitationCode);
@@ -81,7 +84,13 @@ const InvitationCode = ({ circle }) => {
                 <polyline points="20 6 9 17 4 12"></polyline>
               </svg>
             ) : (
-              <img src="/icons/copy.svg" alt="Copy" className="w-4 h-4" />
+              <Image
+                src="/icons/copy.svg"
+                alt="Copy"
+                width={16}
+                height={16}
+                className="mr-2"
+              />
             )}
           </button>
           {copied && (
@@ -89,6 +98,7 @@ const InvitationCode = ({ circle }) => {
           )}
         </div>
       </div>
+
       <hr className="border-gray-200 mb-2" />
       <h3 className="font-medium text-sm mb-2">Members ({members.length})</h3>
       <div className="space-y-0">
@@ -101,10 +111,12 @@ const InvitationCode = ({ circle }) => {
               {member.name === "You" ? (
                 <span className="inline-flex items-center text-[10px] font-medium mr-2">
                   {member.name}
-                  <img
+                  <Image
                     src="/icons/crown.svg"
                     alt="Crown"
-                    className="w-3 h-3 ml-1"
+                    width={12}
+                    height={12}
+                    className="ml-1"
                   />
                 </span>
               ) : (

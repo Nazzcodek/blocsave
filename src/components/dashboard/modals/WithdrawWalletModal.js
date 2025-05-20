@@ -23,9 +23,8 @@ const WithdrawWalletModal = ({ isOpen, onClose, onDestinationSelect }) => {
     <Modal isOpen={isOpen} onClose={onClose} title="Withdraw Funds">
       <div className="space-y-6">
         <p className="text-gray-600">
-          Select where you'd like to withdraw your funds
+          Select where you&apos;d like to withdraw your funds
         </p>
-
         <div className="space-y-3">
           {destinations.map((destination) => (
             <button

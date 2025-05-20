@@ -1,7 +1,14 @@
 import React, { useMemo } from "react";
+import Image from "next/image";
 
 const GroupSummary = ({ circle }) => {
-  if (!circle) return null;
+  const safeCircle = circle || {
+    paymentSchedule: [],
+    weeklyAmount: 0,
+    totalContributionAmount: 0,
+    cycleProgress: 0,
+    contractAddress: "",
+  };
 
   const {
     name,
@@ -19,7 +26,7 @@ const GroupSummary = ({ circle }) => {
     paymentSchedule = [],
     members = [],
     contractAddress,
-  } = circle;
+  } = safeCircle;
 
   // Get current recipient information from payment schedule
   const currentRecipient = useMemo(() => {
@@ -97,6 +104,9 @@ const GroupSummary = ({ circle }) => {
     return `${contractAddress.slice(0, 8)}...${contractAddress.slice(-6)}`;
   }, [contractAddress]);
 
+  // Now we can return null safely after all hooks are defined
+  if (!circle) return null;
+
   // Helper function to format dates consistently
   const formatDateConsistently = (dateString) => {
     if (!dateString) return "Not set";
@@ -147,10 +157,12 @@ const GroupSummary = ({ circle }) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <div className="flex items-center justify-center">
-                <img
+                <Image
                   src="/icons/profile-2user.svg"
                   alt="Group Icon"
-                  className="w-5 h-5 mr-2"
+                  className="mr-2"
+                  width={20}
+                  height={20}
                 />
               </div>
               <h2 className="text-xl font-bold">{displayName}</h2>
@@ -178,10 +190,12 @@ const GroupSummary = ({ circle }) => {
       <div className="grid grid-cols-3 gap-4 mb-4">
         <div className="bg-gray-50 p-3 rounded-md">
           <p className="text-xs text-gray-500 flex items-center">
-            <img
+            <Image
               src="/icons/next.svg"
               alt="Contribution Icon"
-              className="w-3 h-3 mr-2"
+              width={12}
+              height={12}
+              className="mr-2"
             />
             <span className="text-[10px]">Next Contribution</span>
           </p>
@@ -191,10 +205,12 @@ const GroupSummary = ({ circle }) => {
         </div>
         <div className="bg-gray-50 p-3 rounded-md">
           <p className="text-xs text-gray-500 flex items-center">
-            <img
+            <Image
               src="/icons/dollar-circle.svg"
               alt="Pool Icon"
-              className="w-3 h-3 mr-2"
+              width={12}
+              height={12}
+              className="mr-2"
             />
             <span className="text-[10px]">Total Pool</span>
           </p>
@@ -202,10 +218,12 @@ const GroupSummary = ({ circle }) => {
         </div>
         <div className="bg-gray-50 p-3 rounded-md">
           <p className="text-xs text-gray-500 flex items-center">
-            <img
+            <Image
               src="/icons/dollar-circle.svg"
               alt="Payout Icon"
-              className="w-3 h-3 mr-2"
+              width={12}
+              height={12}
+              className="mr-2"
             />
             <span className="text-[10px]">Next Payout</span>
           </p>
@@ -264,10 +282,12 @@ const GroupSummary = ({ circle }) => {
       )}
 
       <button className="w-full bg-[#079669] hover:bg-[#079669] text-white font-medium py-2 rounded-md mt-4 flex items-center justify-center">
-        <img
+        <Image
           src="/icons/wallet-white.svg"
           alt="Contribute"
-          className="w-5 h-5 mr-2"
+          width={20}
+          height={20}
+          className="mr-2"
         />
         Contribute
       </button>

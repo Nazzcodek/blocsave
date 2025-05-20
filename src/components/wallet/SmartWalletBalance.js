@@ -40,6 +40,7 @@ const SmartWalletBalance = () => {
     }
   }, [address, client, dispatch]);
 
+  // Safe to return null after all hooks have been called
   if (!isConnected) {
     return null; // Don't render if wallet not connected
   }

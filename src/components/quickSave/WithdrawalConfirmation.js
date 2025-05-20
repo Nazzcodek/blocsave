@@ -34,7 +34,7 @@ const WithdrawalConfirmation = ({
           Confirm Withdrawal
         </h3>
         <p className="text-gray-600 mt-1">
-          You're about to withdraw {amount} {currency} to your wallet
+          You&apos;re about to withdraw {amount} {currency} to your wallet
         </p>
       </div>
 

@@ -4,11 +4,14 @@ import { closeModal } from "@/redux/slices/modalSlice";
 import WithdrawWalletModal from "./WithdrawWalletModal";
 import WithdrawWalletAmountModal from "./WithdrawWalletAmountModal";
 import WithdrawWalletConfirmationModal from "./WithdrawWalletConfirmationModal";
-import { updateWalletBalance } from "@/redux/slices/dashboardSlice"; // Ensure this action exists
+import { updateWalletBalance } from "@/redux/slices/dashboardSlice";
 
 const WithdrawWalletModalController = () => {
   const dispatch = useDispatch();
   const { isOpen, modalType } = useSelector((state) => state.modal);
+  // Move the wallet balance selector to component level
+  const { walletBalance } = useSelector((state) => state.dashboard);
+
   const [currentStep, setCurrentStep] = useState("select-destination");
   const [withdrawalData, setWithdrawalData] = useState({
     destination: null,
@@ -47,8 +50,6 @@ const WithdrawWalletModalController = () => {
 
   const handleWithdrawalComplete = () => {
     // Update wallet balance in Redux (in a real app, this would happen after API confirmation)
-    const { walletBalance } = useSelector((state) => state.dashboard);
-
     if (walletBalance?.amount) {
       const newBalance =
         parseFloat(walletBalance.amount) - withdrawalData.amount;

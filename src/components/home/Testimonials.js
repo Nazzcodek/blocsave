@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 
 const Testimonials = () => {
   const testimonialData = [
@@ -46,17 +47,21 @@ const Testimonials = () => {
               className="bg-white p-6 rounded-2xl shadow-sm flex flex-col"
             >
               <div className="flex items-center mb-4">
-                <img
+                <Image
                   src={testimonial.image}
                   alt={testimonial.name}
-                  className="w-16 h-16 rounded-full mr-4"
+                  width={64}
+                  height={64}
+                  className="rounded-full mr-4"
                 />
                 <div>
                   <h3 className="font-bold text-xl">{testimonial.name}</h3>
                   <p className="text-gray-600">{testimonial.role}</p>
                 </div>
               </div>
-              <p className="text-gray-700 italic">"{testimonial.comment}"</p>
+              <p className="text-gray-700 italic">
+                &ldquo;{testimonial.comment}&rdquo;
+              </p>
               <div className="mt-4 flex">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <svg
