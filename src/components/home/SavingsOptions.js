@@ -1,5 +1,5 @@
 import React from "react";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import { usePrivy } from "@privy-io/react-auth";
 
 // QuickSave Card Component
