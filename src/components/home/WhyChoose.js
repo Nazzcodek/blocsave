@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 // Community Savings Circle component for better organization
 const CommunitySavingsCircle = () => {
@@ -118,7 +118,7 @@ const CommunitySavingsCircle = () => {
 // Smart Savings Flowchart component
 const SmartSavingsFlow = () => {
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm w-full max-w-4xl mx-auto">
+    <div className="bg-[#F6F6F6] rounded-2xl p-6 shadow-sm w-full max-w-4xl mx-auto">
       {/* First Row */}
       <div className="flex justify-center items-start mb-8">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full max-w-2xl relative">
@@ -336,13 +336,19 @@ const SmartSavingsFlow = () => {
   );
 };
 const WhyChoose = () => {
+  const [isSwitched, setIsSwitched] = useState(false);
+
+  const handleSwitch = () => {
+    setIsSwitched(!isSwitched);
+  };
+
   return (
-    <section id="features" className="py-20">
+    <section id="features" className="bg-[#F6F6F6] py-20">
       <div className="px-4 sm:px-6 md:px-12 lg:px-24 xl:px-[100px]">
-        <h2 className="text-4xl font-bold mb-4 text-center">
+        <h2 className="text-4xl font-bold mb-4 text-center text-gray-900">
           Why Choose Blocsave
         </h2>
-        <p className="text-lg text-center mb-12 max-w-3xl mx-auto">
+        <p className="text-lg text-center mb-12 max-w-3xl mx-auto text-gray-700">
           Blocsave gives you full control, better returns, and the tools to save
           consistently — all without the limits of traditional banks.
         </p>
@@ -351,30 +357,51 @@ const WhyChoose = () => {
           {/* Beat Inflation */}
           <div className="bg-white pt-8 px-8 pb-0 rounded-2xl shadow-sm flex flex-col h-full">
             <div className="flex-grow">
-              <h3 className="text-2xl sm:text-3xl font-bold mb-4">
+              <h3 className="text-2xl sm:text-3xl font-bold mb-4 text-gray-900">
                 Beat Inflation. Preserve Your Wealth.
               </h3>
-              <p className="text-lg xl:text-xl mb-6">
+              <p className="text-lg xl:text-xl mb-6 text-gray-700">
                 Blocsave helps you stay ahead by locking in value, earning
                 returns, and building consistent saving habits that protect your
                 money over time.
               </p>
             </div>
-            <div className="mt-auto pb-0 mb-0">
-              <img
-                src="/icons/exchange_frame.svg"
-                alt="Currency Conversion"
-                className="mx-auto block w-full max-w-xl"
-              />
+            <div className="mt-auto pb-0 mb-4">
+              <div className="bg-[#025A0E] rounded-xl p-8 flex items-center justify-center relative gap-12 w-[518px] h-[308px] mx-auto max-w-full mb-4">
+                <div className="bg-white rounded-lg p-6 shadow-sm w-[177.59px] h-[177.59px] flex items-center justify-center">
+                  <img
+                    src={isSwitched ? "/icons/usdc.png" : "/icons/NGN.png"}
+                    alt="Currency"
+                    className="w-[127px] h-[127px] object-contain"
+                  />
+                </div>
+                <button
+                  onClick={handleSwitch}
+                  className="absolute left-1/2 -translate-x-1/2 hover:scale-110 transition-transform duration-200 z-10"
+                >
+                  <img
+                    src="/icons/switch.png"
+                    alt="Switch"
+                    className="w-16 h-16 object-contain"
+                  />
+                </button>
+                <div className="bg-white rounded-lg p-6 shadow-sm w-[177.59px] h-[177.59px] flex items-center justify-center">
+                  <img
+                    src={isSwitched ? "/icons/NGN.png" : "/icons/usdc.png"}
+                    alt="Currency"
+                    className="w-[127px] h-[127px] object-contain"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Community-Powered Savings */}
           <div className="bg-white p-8 rounded-2xl shadow-sm">
-            <h3 className="text-2xl sm:text-3xl font-bold mb-4">
+            <h3 className="text-2xl sm:text-3xl font-bold mb-4 text-gray-900">
               Community-Powered Savings
             </h3>
-            <p className="text-lg xl:text-xl mb-6">
+            <p className="text-lg xl:text-xl mb-6 text-gray-700">
               A rotating savings and interest-free loan system. Members
               contribute regularly and take turns receiving the pooled funds
               used for personal goals or urgent needs (known as Ajo/Esusu)
@@ -384,10 +411,10 @@ const WhyChoose = () => {
 
           {/* Smart Savings */}
           <div className="bg-white p-8 rounded-2xl shadow-sm">
-            <h3 className="text-2xl sm:text-3xl font-bold mb-4">
+            <h3 className="text-2xl sm:text-3xl font-bold mb-4 text-gray-900">
               Smart Savings powered by AI Agents
             </h3>
-            <p className="text-lg xl:text-xl mb-6">
+            <p className="text-lg xl:text-xl mb-6 text-gray-700">
               Savings powered by smart contracts and trusted DeFi protocols.
               Funds lock securely for a set time and return with profit — like
               they never left.
@@ -397,10 +424,10 @@ const WhyChoose = () => {
 
           {/* Save and Withdraw */}
           <div className="bg-white p-8 rounded-2xl shadow-sm">
-            <h3 className="text-2xl sm:text-3xl font-bold mb-4">
+            <h3 className="text-2xl sm:text-3xl font-bold mb-4 text-gray-900">
               Save and Withdraw, Your Way
             </h3>
-            <p className="text-lg xl:text-xl mb-6">
+            <p className="text-lg xl:text-xl mb-6 text-gray-700">
               Top up with Naira via bank transfer, USSD, or crypto — and
               withdraw directly to your Nigerian bank account in a few taps.
               Fast, flexible, and stress-free.
