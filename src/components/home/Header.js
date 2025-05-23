@@ -23,7 +23,7 @@ const Header = () => {
         onClick={handleClick}
         className={`bg-[#079669] hover:bg-[#068256] text-white rounded-full ${className}`}
       >
-        {authenticated ? "Go to Dashboard" : label}
+        {authenticated ? "" : label}
       </button>
     );
   };
@@ -86,7 +86,7 @@ const Header = () => {
           <a href="#faqs" className="hover:text-green-400">
             FAQs
           </a>
-          <AuthButton label="Go to Dashboard" className="py-2 px-4 lg:px-6" />
+          <AuthButton label="Login / Sign Up" className="py-2 px-4 lg:px-6" />
         </div>
       </nav>
 
@@ -106,7 +106,7 @@ const Header = () => {
             <a href="#faqs" className="hover:text-green-400">
               FAQs
             </a>
-            <AuthButton label="Go to Dashboard" className="py-2 px-6 w-full" />
+            <AuthButton label="Login / Sign Up" className="py-2 px-6 w-full" />
           </div>
         </div>
       )}
