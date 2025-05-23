@@ -1,5 +1,5 @@
 import { Provider } from "react-redux";
-import { useRouter } from "next/router";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { PrivyProvider } from "@privy-io/react-auth";
 import store from "../redux/store";
@@ -13,35 +13,29 @@ import "../styles/globals.css";
 import { baseSepolia } from "viem/chains";
 
 function MyApp({ Component, pageProps }) {
-  const router = useRouter();
+  const pathname = usePathname();
   const [loading, setLoading] = useState(false);
 
   // Handle route change loading states
   useEffect(() => {
-    const handleStart = () => setLoading(true);
-    const handleComplete = () => setLoading(false);
-
-    router.events.on("routeChangeStart", handleStart);
-    router.events.on("routeChangeComplete", handleComplete);
-    router.events.on("routeChangeError", handleComplete);
-
-    return () => {
-      router.events.off("routeChangeStart", handleStart);
-      router.events.off("routeChangeComplete", handleComplete);
-      router.events.off("routeChangeError", handleComplete);
-    };
-  }, [router]);
+    setLoading(true);
+    const timeout = setTimeout(() => setLoading(false), 500);
+    return () => clearTimeout(timeout);
+  }, [pathname]);
 
   return (
     <PrivyProvider
       appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID}
-      clientId={process.env.NEXT_PUBLIC_PRIVY_CLIENT_ID}
       config={{
-        // Create embedded wallets for users who don't have a wallet
         defaultChain: baseSepolia,
         embeddedWallets: {
           createOnLogin: "users-without-wallets",
         },
+        appearance: {
+          theme: 'light',
+          accentColor: '#079669',
+        },
+        loginMethods: ['email', 'wallet'],
       }}
     >
       <Provider store={store}>
@@ -55,7 +49,7 @@ function MyApp({ Component, pageProps }) {
           {/* Wrap all pages in our AuthWrapper */}
           <AuthWrapper>
             {/* Conditionally apply Layout except for home page */}
-            {router.pathname === "/home" ? (
+            {pathname === "/" ? (
               <Component {...pageProps} />
             ) : (
               <Layout>
