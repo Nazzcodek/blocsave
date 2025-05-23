@@ -1,10 +1,10 @@
 import { usePrivy } from "@privy-io/react-auth";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
+import Image from "next/image";
 
 const publicPaths = [
   "/",
-  "/home",
   "/auth/login",
   // Add other public paths here
 ];
@@ -31,8 +31,16 @@ const AuthWrapper = ({ children }) => {
   if (!ready) {
     return (
       <div className="fixed inset-0 flex justify-center items-center bg-white z-50">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary-500"></div>
-        <span className="ml-3">Loading authentication...</span>
+        <div className="animate-pulse">
+          <Image
+            src="/icons/logo-green.svg"
+            alt="Blocsave logo"
+            width={80}
+            height={80}
+            priority
+            className="animate-[pulse_2s_ease-in-out_infinite]"
+          />
+        </div>
       </div>
     );
   }
