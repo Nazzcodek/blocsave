@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { createCircle } from "../../redux/slices/adasheSlice";
 import { openModal, closeModal } from "../../redux/slices/modalSlice";
@@ -17,9 +17,26 @@ const CreateCircleForm = () => {
   const [tempAmount, setTempAmount] = useState("");
   const [memberCount, setMemberCount] = useState(1);
   const [tempMemberCount, setTempMemberCount] = useState("");
-  const [frequency, setFrequency] = useState("Weekly");
+  const [frequency, setFrequency] = useState("weekly");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [creationStep, setCreationStep] = useState(0); // 0: not started, 1: creating address, 2: creating circle
+  const [creationStep, setCreationStep] = useState(0);
+  const [creatorName, setCreatorName] = useState("");
+
+  // Get creator name from Privy user data
+  useEffect(() => {
+    if (user) {
+      // Extract user info in priority order: username > email > wallet address > "Anonymous"
+      const userName =
+        user.username ||
+        user.email?.address ||
+        (user.wallet?.address
+          ? `${user.wallet.address.slice(0, 10)}...`
+          : null) ||
+        "Anonymous";
+
+      setCreatorName(userName);
+    }
+  }, [user]);
 
   // Constants
   const totalPeriods = memberCount;
@@ -91,10 +108,10 @@ const CreateCircleForm = () => {
       }
 
       const circleData = {
-        name: circleName.trim(), // Trim any extra spaces
+        name: circleName.trim(),
         contributionAmount,
         memberCount,
-        frequency,
+        frequency: frequency.toLowerCase(),
       };
 
       // Get the embedded wallet from Privy
@@ -115,28 +132,17 @@ const CreateCircleForm = () => {
       const { debugStart, debugEnd } = await import("../../utils/debug");
 
       // Start debugging the create circle operation
-      debugStart("createCircle", circleData);
+      debugStart("createCircle", { ...circleData, creatorName });
 
       // Show step 1 in progress - creating Adashe contract
       setCreationStep(1);
 
-      // Show modal indicating step 1 is in progress
-      dispatch(
-        openModal({
-          modalType: "INFO_MODAL",
-          modalProps: {
-            title: "Creating Adashe Contract",
-            message:
-              "Step 1 of 2: Creating a new Adashe contract. Please confirm the transaction in your wallet.",
-          },
-        })
-      );
-
-      // Dispatch the createCircle action with the wallet
+      // Dispatch the createCircle action with the wallet and user data for creator name
       const result = await dispatch(
         createCircle({
-          embeddedWallet: embeddedWallet,
+          embeddedWallet,
           circleData,
+          authUser: user, // Pass user data to get the creator name
         })
       ).unwrap();
 
@@ -184,11 +190,8 @@ const CreateCircleForm = () => {
         throw new Error("Failed to create circle");
       }
 
-      // Now open modal with invitation code that can be copied
-      // Use the actual circle address/ID from the blockchain
       const circleCode =
-        result.newCircle?.invitationCode ||
-        `${circleName}${result.newCircle?.id.slice(0, 6)}`;
+        result.newCircle?.invitationCode || result.newCircle?.id;
       const circleAddress =
         result.newCircle?.contractAddress || result.newCircle?.id;
 
@@ -202,6 +205,7 @@ const CreateCircleForm = () => {
             frequency: frequency,
             amount: contributionAmount,
             members: memberCount,
+            creatorName: creatorName,
           },
         })
       );
@@ -278,6 +282,15 @@ const CreateCircleForm = () => {
 
   return (
     <form onSubmit={handleCreateCircle} className="space-y-4">
+      {user && (
+        <div className="mb-2 p-3 bg-gray-50 rounded-md">
+          <p className="text-sm text-gray-600">
+            Creating circle as:{" "}
+            <span className="font-medium">{creatorName}</span>
+          </p>
+        </div>
+      )}
+
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Circle Name
@@ -383,8 +396,8 @@ const CreateCircleForm = () => {
           onChange={(e) => setFrequency(e.target.value)}
           required
         >
-          <option value="Weekly">Weekly</option>
-          <option value="Monthly">Monthly</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
         </select>
       </div>
 

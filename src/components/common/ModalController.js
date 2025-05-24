@@ -23,7 +23,7 @@ const MODAL_CONFIGS = {
   },
   ADASHE_JOIN_SUCCESS: {
     title: "Welcome to the Circle!",
-    message: "You've successfully joined the {groupName} savings group",
+    message: "{message}", // Will be replaced with custom message or default
     subMessage: "",
   },
   SAFELOCK_ACTIVATED: {
@@ -109,6 +109,17 @@ const ModalController = () => {
     // Update messages specifically for the circle creation success
     formattedConfig.message =
       "Invite your trusted circle to join your Adashe using this code:";
+  }
+
+  // Handle special case for ADASHE_JOIN_SUCCESS with custom message
+  if (modalType === "ADASHE_JOIN_SUCCESS") {
+    if (modalProps.message) {
+      // Use the custom message provided by the join result
+      formattedConfig.message = modalProps.message;
+    } else {
+      // Use default template message
+      formattedConfig.message = "You've successfully joined the savings group";
+    }
   }
 
   // Merge with any additional props

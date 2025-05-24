@@ -2,10 +2,11 @@ import React, { useState } from "react";
 import { useDispatch } from "react-redux";
 import { withdrawFromCircle } from "../../redux/slices/adasheSlice";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
+import Image from "next/image";
 
 const PaymentSchedule = ({ circle }) => {
   const dispatch = useDispatch();
-  const { authenticated } = usePrivy();
+  const { authenticated, user } = usePrivy();
   const { wallets } = useWallets();
   const [processingWithdrawal, setProcessingWithdrawal] = useState(false);
   const [processingRound, setProcessingRound] = useState(null);
@@ -122,8 +123,13 @@ const PaymentSchedule = ({ circle }) => {
                   </div>
                 </div>
                 <p className="text-[10px] text-gray-600">
-                  Recipient: {round.recipient.name} (
-                  {round.recipient.id.substring(0, 8)}...)
+                  Recipient:{" "}
+                  {round.recipient.id &&
+                  user?.wallet?.address &&
+                  round.recipient.id.toLowerCase() ===
+                    user.wallet.address.toLowerCase()
+                    ? "You"
+                    : `${round.recipient.id.substring(0, 8)}...`}
                 </p>
               </div>
 
@@ -155,9 +161,11 @@ const PaymentSchedule = ({ circle }) => {
                       ></path>
                     </svg>
                   ) : (
-                    <img
+                    <Image
                       src="/icons/wallet-white.svg"
                       alt="Withdraw"
+                      width={16}
+                      height={16}
                       className="w-4 h-4 mr-2 text-white"
                     />
                   )}

@@ -3,20 +3,22 @@ import ReactDOM from "react-dom";
 import { useDispatch } from "react-redux";
 import { closeModal, openModal } from "../../redux/slices/modalSlice";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
-import { joinAdasheCircle } from "../../services/blockchain/useAdashe";
+import { joinCircle } from "../../redux/slices/adasheSlice";
 
 const JoinGroupModal = ({
   title = "Join a Savings Group",
   buttonText = "Join Group",
-  placeholder = "Code",
+  placeholder = "Contract Address",
   initialValue = "",
   onSubmit = () => {},
   onClose = () => {},
-  inputLabel = "Enter your group invite code",
+  inputLabel = "Enter the group contract address",
 }) => {
   const [inviteCode, setInviteCode] = useState(initialValue);
+  const [userName, setUserName] = useState("");
   const [mounted, setMounted] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
   const dispatch = useDispatch();
   const { user, authenticated } = usePrivy();
   const { wallets } = useWallets();
@@ -24,17 +26,32 @@ const JoinGroupModal = ({
   useEffect(() => {
     setMounted(true);
 
+    // Set default user name from Privy user data
+    if (user) {
+      const defaultName =
+        user.username ||
+        user.email?.address ||
+        (user.wallet?.address
+          ? `${user.wallet.address.slice(0, 6)}...${user.wallet.address.slice(
+              -4
+            )}`
+          : null) ||
+        "Anonymous";
+      setUserName(defaultName);
+    }
+
     // Prevent body scrolling when modal is open
     document.body.style.overflow = "hidden";
 
     return () => {
       document.body.style.overflow = "auto";
     };
-  }, []);
+  }, [user]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsJoining(true);
+    setErrorMsg("");
 
     try {
       if (!authenticated) {
@@ -51,33 +68,76 @@ const JoinGroupModal = ({
         throw new Error("Embedded wallet not found");
       }
 
-      // Join the circle using blockchain
-      const receipt = await joinAdasheCircle(
-        embeddedWallet,
-        inviteCode,
-        null,
-        (error) => {
-          throw error;
-        }
-      );
-
-      // Call any additional onSubmit handler if provided
-      if (onSubmit) {
-        await onSubmit(inviteCode);
+      // Add validation for contract address format
+      if (!inviteCode.startsWith("0x") || inviteCode.length !== 42) {
+        setErrorMsg("Please enter a valid contract address (0x... format)");
+        setIsJoining(false);
+        return;
       }
 
-      // Show success modal
-      dispatch(
-        openModal({
-          modalType: "ADASHE_JOIN_SUCCESS",
-          modalProps: { groupName: inviteCode },
+      if (!userName.trim()) {
+        setErrorMsg("Please enter your name");
+        setIsJoining(false);
+        return;
+      }
+
+      // Add the log here
+      console.log("Joining group with:", {
+        contractAddress: inviteCode,
+        userName: userName.trim(),
+        embeddedWalletAddress: embeddedWallet?.user?.address,
+      });
+
+      // Use Redux thunk to join by contract address
+      const resultAction = await dispatch(
+        joinCircle({
+          embeddedWallet,
+          contractAddress: inviteCode,
+          userName: userName.trim(),
         })
       );
+      if (joinCircle.fulfilled.match(resultAction)) {
+        // Call any additional onSubmit handler if provided
+        if (onSubmit) {
+          await onSubmit(inviteCode);
+        }
 
-      onClose();
+        // Get the join result data
+        const joinData = resultAction.payload;
+
+        // Determine the appropriate modal props based on join result
+        let modalProps = { contractAddress: inviteCode };
+        let modalMessage = "You've successfully joined the savings group";
+
+        if (joinData?.message) {
+          // User was already a member or is the owner
+          if (joinData.isOwner) {
+            modalMessage =
+              "You are the creator of this circle and are already a member.";
+          } else if (joinData.alreadyMember) {
+            modalMessage = "You are already a member of this circle.";
+          } else {
+            modalMessage = joinData.message;
+          }
+        }
+
+        modalProps.message = modalMessage;
+
+        // Show success modal with appropriate message
+        dispatch(
+          openModal({
+            modalType: "ADASHE_JOIN_SUCCESS",
+            modalProps,
+          })
+        );
+        onClose();
+      } else {
+        setErrorMsg(resultAction.payload || "Failed to join group");
+        setIsJoining(false);
+      }
     } catch (error) {
       console.error("Failed to join group:", error);
-      alert(`Failed to join group: ${error.message || "Unknown error"}`);
+      setErrorMsg(error.message || "Unknown error");
       setIsJoining(false);
     }
   };
@@ -137,9 +197,32 @@ const JoinGroupModal = ({
               value={inviteCode}
               onChange={(e) => setInviteCode(e.target.value)}
               placeholder={placeholder}
+              className="w-full p-3 border border-gray-300 rounded-md mb-4"
+              required
+            />
+
+            {/* User Name Input */}
+            <label
+              htmlFor="userName"
+              className="block text-[12px] font-medium text-gray-700 mb-2"
+            >
+              Your name in the group
+            </label>
+
+            <input
+              type="text"
+              id="userName"
+              value={userName}
+              onChange={(e) => setUserName(e.target.value)}
+              placeholder="Enter your name"
               className="w-full p-3 border border-gray-300 rounded-md mb-6"
               required
             />
+
+            {/* Error Message */}
+            {errorMsg && (
+              <div className="text-red-500 text-xs mb-2">{errorMsg}</div>
+            )}
 
             {/* Button */}
             <button

@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+
+*ADASHE_JOIN_FIX_COMPLETE
+
+*test_

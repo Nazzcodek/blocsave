@@ -58,23 +58,18 @@ const GroupSummary = ({ circle }) => {
     return weeklyAmount.toFixed(2);
   }, [weeklyAmount]);
 
-  // Format total pool amount
-  const formattedTotalPool = useMemo(() => {
+  // Calculate total pool as weeklyAmount x memberCount (in USDC)
+  const calculatedTotalPool = useMemo(() => {
     if (
-      typeof totalContributionAmount !== "number" ||
-      isNaN(totalContributionAmount)
+      typeof weeklyAmount !== "number" ||
+      typeof memberCount !== "number" ||
+      isNaN(weeklyAmount) ||
+      isNaN(memberCount)
     ) {
-      return "0";
+      return "0.00";
     }
-    // If it's a very small number (like 0.000003), convert to a more readable format
-    if (totalContributionAmount < 0.01 && totalContributionAmount > 0) {
-      const convertedValue = totalContributionAmount * 1000000;
-      // Add microUSDC indicator for very small values
-      return `${convertedValue.toFixed(2)} µUSDC`;
-    } else {
-      return totalContributionAmount.toFixed(2);
-    }
-  }, [totalContributionAmount]);
+    return (weeklyAmount * memberCount).toFixed(2);
+  }, [weeklyAmount, memberCount]);
 
   // Ensure current round is at least 1
   const displayCurrentRound = Math.max(1, currentRound || 1);
@@ -214,7 +209,7 @@ const GroupSummary = ({ circle }) => {
             />
             <span className="text-[10px]">Total Pool</span>
           </p>
-          <p className="font-medium">${formattedTotalPool}</p>
+          <p className="font-medium">${calculatedTotalPool} USDC</p>
         </div>
         <div className="bg-gray-50 p-3 rounded-md">
           <p className="text-xs text-gray-500 flex items-center">
@@ -255,7 +250,7 @@ const GroupSummary = ({ circle }) => {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <p className="text-xs text-gray-500">Start Date</p>
-            <p className="text-sm">{formatDateConsistently(startDate)}</p>
+            <p className="text-xs">{formatDateConsistently(startDate)}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500">End Date</p>

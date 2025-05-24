@@ -25,25 +25,75 @@ export async function getAdasheBalance(embeddedWallet, adasheAddress) {
     console.log("[getAdasheBalance] Starting for user:", userAddress);
     console.log("[getAdasheBalance] Using Adashe address:", adasheAddress);
 
+    // Check if contract exists at address
+    const code = await ethersProvider.getCode(adasheAddress);
+    if (!code || code === "0x") {
+      console.warn(
+        `[getAdasheBalance] No contract deployed at address: ${adasheAddress}`
+      );
+      return {
+        contributedWeeks: 0,
+        totalContribution: 0,
+        currentWeek: 0,
+        isCompleted: false,
+        status: "invalid_contract",
+      };
+    }
+
     // Connect to the Adashe contract
     const contract = new Contract(adasheAddress, ADASHE_CONTRACT_ABI, signer);
 
-    // Get contribution progress
-    const progress = await contract.getContributionProgress(userAddress);
-    console.log("[getAdasheBalance] Progress:", progress);
+    // Get contribution progress safely
+    let contributedWeeks = 0;
+    let totalContribution = 0;
 
-    const contributedWeeks = Number(progress[0]);
-    const totalContribution = Number(formatUnits(progress[1], 6)); // Assuming 6 decimals for USDC
+    try {
+      const progress = await Promise.race([
+        contract.getContributionProgress(userAddress),
+        new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error("getContributionProgress timeout")),
+            10000
+          )
+        ),
+      ]);
+      console.log("[getAdasheBalance] Progress:", progress);
 
-    // Get current week
-    const currentWeek = await contract.getCurrentWeek();
-    console.log("[getAdasheBalance] Current week:", currentWeek);
+      contributedWeeks = Number(progress[0]);
+      totalContribution = Number(formatUnits(progress[1], 6)); // Assuming 6 decimals for USDC
+    } catch (progressError) {
+      console.error(
+        "[getAdasheBalance] Error fetching contribution progress:",
+        progressError
+      );
+      // Continue with default values
+    }
+
+    // Get current week separately to isolate potential issues
+    let currentWeek = 0;
+    try {
+      currentWeek = await Promise.race([
+        contract.getCurrentWeek(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("getCurrentWeek timeout")), 10000)
+        ),
+      ]);
+      console.log("[getAdasheBalance] Current week:", currentWeek);
+      currentWeek = Number(currentWeek);
+    } catch (weekError) {
+      console.error(
+        "[getAdasheBalance] Error fetching current week:",
+        weekError
+      );
+      // Use default value of 0
+    }
 
     return {
       contributedWeeks,
       totalContribution,
-      currentWeek: Number(currentWeek),
-      isCompleted: contributedWeeks >= Number(currentWeek),
+      currentWeek,
+      isCompleted: contributedWeeks >= currentWeek,
+      status: "success",
     };
   } catch (error) {
     console.error("[getAdasheBalance] Failed to fetch adashe balance:", error);
@@ -52,6 +102,8 @@ export async function getAdasheBalance(embeddedWallet, adasheAddress) {
       totalContribution: 0,
       currentWeek: 0,
       isCompleted: false,
+      status: "error",
+      error: error.message,
     };
   }
 }
