@@ -1,8 +1,9 @@
+/** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    "./src/pages/**/*.{js,ts,jsx,tsx}",
-    "./src/components/**/*.{js,ts,jsx,tsx}",
-    "./src/app/**/*.{js,ts,jsx,tsx}",
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
@@ -47,6 +48,20 @@ module.exports = {
       fontFamily: {
         sans: ["Inter", "sans-serif"],
       },
+      keyframes: {
+        typing: {
+          from: { width: "0" },
+          to: { width: "100%" }
+        },
+        cursor: {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0" }
+        }
+      },
+      animation: {
+        typing: "typing 2s steps(30, end)",
+        cursor: "cursor 1s step-end infinite"
+      }
     },
   },
   plugins: [],

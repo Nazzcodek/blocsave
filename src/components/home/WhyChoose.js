@@ -368,7 +368,7 @@ const WhyChoose = () => {
             </div>
             <div className="mt-auto pb-0 mb-4">
               <div className="bg-[#025A0E] rounded-xl p-8 flex items-center justify-center relative gap-12 w-[518px] h-[308px] mx-auto max-w-full mb-4">
-                <div className="bg-white rounded-lg p-6 shadow-sm w-[177.59px] h-[177.59px] flex items-center justify-center">
+                <div className="bg-white rounded-3xl p-6 shadow-sm w-[177.59px] h-[177.59px] flex items-center justify-center">
                   <img
                     src={isSwitched ? "/icons/usdc.png" : "/icons/NGN.png"}
                     alt="Currency"
@@ -385,7 +385,7 @@ const WhyChoose = () => {
                     className="w-16 h-16 object-contain"
                   />
                 </button>
-                <div className="bg-white rounded-lg p-6 shadow-sm w-[177.59px] h-[177.59px] flex items-center justify-center">
+                <div className="bg-white rounded-3xl p-6 shadow-sm w-[177.59px] h-[177.59px] flex items-center justify-center">
                   <img
                     src={isSwitched ? "/icons/NGN.png" : "/icons/usdc.png"}
                     alt="Currency"
