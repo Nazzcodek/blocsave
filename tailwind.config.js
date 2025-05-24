@@ -50,17 +50,22 @@ module.exports = {
       },
       keyframes: {
         typing: {
-          from: { width: "0" },
-          to: { width: "100%" }
+          "0%": { width: "0%" },
+          "100%": { width: "100%" },
         },
         cursor: {
-          "0%, 100%": { opacity: "1" },
-          "50%": { opacity: "0" }
-        }
+          "0%, 100%": { opacity: 1 },
+          "50%": { opacity: 0 },
+        },
+        slideIn: {
+          "0%": { transform: "translateY(20px)", opacity: 0 },
+          "100%": { transform: "translateY(0)", opacity: 1 },
+        },
       },
       animation: {
         typing: "typing 2s steps(30, end)",
-        cursor: "cursor 1s step-end infinite"
+        cursor: "cursor 1s infinite",
+        slideIn: "slideIn 0.5s ease-out forwards",
       }
     },
   },

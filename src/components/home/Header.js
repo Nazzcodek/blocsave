@@ -118,7 +118,7 @@ const Header = () => {
       {/* Mobile Navigation */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-black border-t border-gray-800 py-4 px-4 sm:px-6 md:px-12 lg:px-24 xl:px-[100px]">
-          <div className="flex flex-col space-y-4">
+          <div className="flex flex-col space-y-4 border-b border-gray-800 pb-6">
             <a href="#features" className="hover:text-green-400">
               Features
             </a>
