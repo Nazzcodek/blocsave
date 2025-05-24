@@ -8,10 +8,10 @@ const HowItWorks = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 relative">
           {/* Left column - content area with larger padding */}
           <div className="py-12 md:py-20 lg:py-32 pr-4 md:pr-8 lg:pr-16 relative z-10">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-2">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-2 text-gray-900">
               How Blocsave Works
             </h2>
-            <p className="mb-4 text-gray-700">
+            <p className="mb-4 text-gray-600">
               Saving made simple, smart, and secure.
             </p>
 
@@ -36,7 +36,7 @@ const HowItWorks = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 sm:gap-x-6 gap-y-6 sm:gap-y-8">
               {/* Step 1 */}
               <div className="flex flex-col">
-                <div className="mb-2 text-gray-700">
+                <div className="mb-2 text-[#079669]">
                   <img
                     src="icons/user-edit.svg"
                     alt="User"
@@ -44,8 +44,8 @@ const HowItWorks = () => {
                   />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold mb-4">Sign Up</h3>
-                  <p className="text-gray-700 text-sm">
+                  <h3 className="text-xl font-bold mb-4 text-gray-900">Sign Up</h3>
+                  <p className="text-gray-600 text-sm">
                     Get started with just your email or phone number.
                   </p>
                 </div>
@@ -53,12 +53,12 @@ const HowItWorks = () => {
 
               {/* Step 2 */}
               <div className="flex flex-col">
-                <div className="mb-2 text-gray-700">
+                <div className="mb-2 text-[#079669]">
                   <img src="icons/coin.svg" alt="Fund" className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold mb-4">Fund Account</h3>
-                  <p className="text-gray-700 text-sm">
+                  <h3 className="text-xl font-bold mb-4 text-gray-900">Fund Account</h3>
+                  <p className="text-gray-600 text-sm">
                     Fund with your local currency via bank transfer or USSD. You
                     can also fund directly from your crypto wallet.
                   </p>
@@ -67,7 +67,7 @@ const HowItWorks = () => {
 
               {/* Step 3 */}
               <div className="flex flex-col">
-                <div className="mb-2 text-gray-700">
+                <div className="mb-2 text-[#079669]">
                   <img
                     src="icons/color-swatch.svg"
                     alt="Lock"
@@ -75,10 +75,10 @@ const HowItWorks = () => {
                   />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold mb-4">
+                  <h3 className="text-xl font-bold mb-4 text-gray-900">
                     Choose a Saving Method
                   </h3>
-                  <p className="text-gray-700 text-sm">
+                  <p className="text-gray-600 text-sm">
                     Select between, Quick Save, SafeLock, or Adashe (Group
                     Savings)
                   </p>
@@ -87,14 +87,14 @@ const HowItWorks = () => {
 
               {/* Step 4 */}
               <div className="flex flex-col">
-                <div className="mb-2 text-gray-700">
+                <div className="mb-2 text-[#079669]">
                   <img src="icons/tree.svg" alt="Grow" className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold mb-4">
+                  <h3 className="text-xl font-bold mb-4 text-gray-900">
                     Watch Your Money Grow
                   </h3>
-                  <p className="text-gray-700 text-sm">
+                  <p className="text-gray-600 text-sm">
                     Track your savings, earn interest, and withdraw funds when
                     you need them.
                   </p>

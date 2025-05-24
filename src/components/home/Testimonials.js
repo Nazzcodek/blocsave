@@ -32,10 +32,10 @@ const Testimonials = () => {
   return (
     <section id="testimonials" className="py-20 bg-gray-50">
       <div className="px-4 sm:px-6 md:px-12 lg:px-24 xl:px-[100px]">
-        <h2 className="text-4xl font-bold mb-4 text-center">
+        <h2 className="text-4xl font-bold mb-4 text-center text-gray-900">
           What Our Users Say
         </h2>
-        <p className="text-lg text-center mb-12 max-w-3xl mx-auto">
+        <p className="text-lg text-center mb-12 max-w-3xl mx-auto text-gray-700">
           Join thousands of people discovering a better way to save and grow
           their money.
         </p>
@@ -44,7 +44,7 @@ const Testimonials = () => {
           {testimonialData.map((testimonial) => (
             <div
               key={testimonial.id}
-              className="bg-white p-6 rounded-2xl shadow-sm flex flex-col"
+              className="bg-white p-6 rounded-2xl shadow-sm flex flex-col hover:shadow-md transition-shadow"
             >
               <div className="flex items-center mb-4">
                 <Image
@@ -55,7 +55,7 @@ const Testimonials = () => {
                   className="rounded-full mr-4"
                 />
                 <div>
-                  <h3 className="font-bold text-xl">{testimonial.name}</h3>
+                  <h3 className="font-bold text-xl text-gray-900">{testimonial.name}</h3>
                   <p className="text-gray-600">{testimonial.role}</p>
                 </div>
               </div>
@@ -66,7 +66,7 @@ const Testimonials = () => {
                 {[1, 2, 3, 4, 5].map((star) => (
                   <svg
                     key={star}
-                    className="w-5 h-5 text-yellow-500"
+                    className="w-5 h-5 text-[#079669]"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >

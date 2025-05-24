@@ -13,8 +13,8 @@ const robotoMono = Roboto_Mono({
 });
 
 export const metadata = {
-  title: "Blocsave Application",
-  description: "This application is a demo for Blocsave",
+  title: "Blocsave",
+  description: "Save in stablecoins",
 };
 
 export default function RootLayout({ children }) {
