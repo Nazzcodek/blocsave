@@ -10,7 +10,7 @@ import ModalController from "../components/common/ModalController";
 import FundModalManager from "../components/dashboard/modals/FundModalManager";
 import PrivyOffRampModalController from "../components/dashboard/modals/PrivyOffRampModalController";
 import "../styles/globals.css";
-import { baseSepolia } from "viem/chains";
+import { baseSepolia, base } from "viem/chains";
 
 function MyApp({ Component, pageProps }) {
   const router = useRouter();
@@ -38,9 +38,10 @@ function MyApp({ Component, pageProps }) {
       clientId={process.env.NEXT_PUBLIC_PRIVY_CLIENT_ID}
       config={{
         // Create embedded wallets for users who don't have a wallet
-        defaultChain: baseSepolia,
+        defaultChain: base,
+        supportedChains: [base, baseSepolia],
         embeddedWallets: {
-          createOnLogin: "users-without-wallets",
+          createOnLogin: "users-without-wallets"
         },
       }}
     >
