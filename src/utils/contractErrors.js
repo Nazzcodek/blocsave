@@ -1,6 +1,5 @@
 // Utility for handling and decoding contract errors
 import { Interface } from "ethers";
-import { logContractOperation } from "./contractDebug";
 
 /**
  * Common Solidity error signatures
@@ -14,10 +13,19 @@ const ERROR_SIGNATURES = {
   "Ownable: caller is not the owner": "0x4ca88867",
   "ReentrancyGuard: reentrant call": "0x9e87fac8",
 
-  // Custom project errors - add your contract-specific errors here
-  "Circle name already exists": "0xa123b456", // Example - replace with actual signature
-  "Invalid parameter": "0xb123c456", // Example - replace with actual signature
-  "Not a member": "0xc123d456", // Example - replace with actual signature
+  // Adashe contract specific errors
+  "You are already a member of this group": "0x8579befe", // AlreadyAdasheGroupMember
+  "This group is full and cannot accept new members": "0x4b1c4b82", // GroupIsFull
+  "You are not a member of this group": "0x9e1b8b41", // NotAlreadyAdasheGroupMember
+  "Only the owner can perform this action": "0x82b42900", // CallerNotOwner
+  "Invalid amount specified": "0x18b2b6d1", // InvalidAmount
+  "Invalid week specified": "0xa24a13a6", // InvalidWeek
+  "Already withdrawn for this period": "0x7dbfbb93", // AlreadyWithdrawn
+  "Already paid for this week": "0x9d2fc8f5", // AlreadyPaidThisWeek
+  "Not yet unlocked": "0xf8a8fd6d", // NotYetUnlocked
+  "Transfer failed": "0x90b8ec18", // TransferFailed
+  "Invalid members count": "0x8b96b22c", // InvalidMembers
+  "Invalid lock period": "0x03b9b8b6", // InvalidLockPeriod
 };
 
 /**
@@ -33,6 +41,37 @@ export function decodeContractError(error) {
     // If we already have a reason, just return it
     if (error.reason) return error.reason;
 
+    // Handle specific wallet/provider error patterns first
+    if (error.message) {
+      const errorMsg = error.message.toLowerCase();
+
+      // Handle "missing revert data" specifically
+      if (errorMsg.includes("missing revert data")) {
+        return "Transaction failed due to contract requirements. You may already be a member or the action is not allowed.";
+      }
+
+      // Handle user rejection
+      if (
+        errorMsg.includes("user rejected") ||
+        errorMsg.includes("user denied")
+      ) {
+        return "Transaction was cancelled by user.";
+      }
+
+      // Handle insufficient funds
+      if (errorMsg.includes("insufficient funds")) {
+        return "Insufficient funds to complete the transaction.";
+      }
+
+      // Handle network errors
+      if (
+        errorMsg.includes("network error") ||
+        errorMsg.includes("connection")
+      ) {
+        return "Network error. Please check your connection and try again.";
+      }
+    }
+
     // For standard errors with data
     if (error.data) {
       // Try to find a matching error signature
@@ -47,7 +86,7 @@ export function decodeContractError(error) {
       }
 
       // Log the unknown error for debugging
-      logContractOperation("unknownContractError", {
+      console.log("[CONTRACT ERROR] Unknown error:", {
         errorData: error.data,
         signature: errorSignature,
       });
@@ -77,7 +116,7 @@ export function handleContractError(error, context = {}) {
   const decodedError = decodeContractError(error);
 
   // Log the error with context
-  logContractOperation("contractErrorHandled", {
+  console.log("[CONTRACT ERROR] Error handled:", {
     context,
     originalError: error?.message,
     decodedError,

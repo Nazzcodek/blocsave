@@ -1,21 +1,65 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import ContributeModal from "./ContributeModal";
 import Image from "next/image";
+import { useWallets } from "@privy-io/react-auth";
+import { getDetailedMembers } from "@/services/blockchain/useAdashe";
 
 const InvitationCode = ({ circle }) => {
   // Move all hooks to the top level before any conditional returns
   const [copied, setCopied] = useState(false);
   const [showContributeModal, setShowContributeModal] = useState(false);
+  const [detailedMembers, setDetailedMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const dispatch = useDispatch();
+  const { wallets } = useWallets();
+  const embeddedWallet = wallets?.[0];
+  const userAddress = wallets && wallets[0]?.address?.toLowerCase();
+
+  // Use the contract address as the invitation code instead of circle name
+  const invitationCodeValue = circle?.address || circle?.contractAddress;
+
+  useEffect(() => {
+    const fetchDetailedMembers = async () => {
+      if (!embeddedWallet || !invitationCodeValue || !circle) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        console.log(
+          "[InvitationCode] Fetching detailed members for:",
+          invitationCodeValue
+        );
+
+        const members = await getDetailedMembers(
+          embeddedWallet,
+          invitationCodeValue,
+          userAddress
+        );
+
+        setDetailedMembers(members);
+      } catch (error) {
+        console.error(
+          "[InvitationCode] Failed to fetch detailed members:",
+          error
+        );
+        // Fallback to existing members if available
+        setDetailedMembers(circle.members || []);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDetailedMembers();
+  }, [embeddedWallet, invitationCodeValue, userAddress, circle]);
 
   // Return early after all hooks are called
   if (!circle) return null;
 
-  const { invitationCode, members = [] } = circle;
-
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(invitationCode);
+    navigator.clipboard.writeText(invitationCodeValue);
     setCopied(true);
 
     // Reset after 2 seconds
@@ -62,7 +106,9 @@ const InvitationCode = ({ circle }) => {
       </button>
 
       <div className="flex items-center justify-between p-3 bg-gray-50 rounded-md mb-6">
-        <span className="text-[12px] font-semibold">{invitationCode}</span>
+        <span className="text-[12px] font-semibold truncate flex-1 mr-2">
+          {invitationCodeValue}
+        </span>
         <div className="flex flex-col items-center">
           <button
             onClick={copyToClipboard}
@@ -100,36 +146,51 @@ const InvitationCode = ({ circle }) => {
       </div>
 
       <hr className="border-gray-200 mb-2" />
-      <h3 className="font-medium text-sm mb-2">Members ({members.length})</h3>
+      <h3 className="font-medium text-sm mb-2">
+        Members ({detailedMembers.length})
+      </h3>
       <div className="space-y-0">
-        {members.map((member) => (
-          <div
-            key={member.id}
-            className="flex flex-col pb-3 pt-3 border-b border-gray-200"
-          >
-            <div className="flex items-center mb-1">
-              {member.name === "You" ? (
-                <span className="inline-flex items-center text-[10px] font-medium mr-2">
-                  {member.name}
-                  <Image
-                    src="/icons/crown.svg"
-                    alt="Crown"
-                    width={12}
-                    height={12}
-                    className="ml-1"
-                  />
-                </span>
-              ) : (
-                <span className="text-[10px] font-medium mr-2">
-                  {member.name}
-                </span>
-              )}
+        {detailedMembers.map((member) => {
+          return (
+            <div
+              key={member.address}
+              className="flex flex-col pb-3 pt-3 border-b border-gray-200"
+            >
+              <div className="flex items-center mb-1">
+                {member.isCurrentUser ? (
+                  <span className="inline-flex items-center text-[10px] font-medium mr-2">
+                    You
+                    {member.isOwner && (
+                      <Image
+                        src="/icons/crown.svg"
+                        alt="Crown"
+                        width={12}
+                        height={12}
+                        className="ml-1"
+                      />
+                    )}
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-medium mr-2 inline-flex items-center">
+                    {member.name || member.address}
+                    {member.isOwner && (
+                      <Image
+                        src="/icons/crown.svg"
+                        alt="Crown"
+                        width={12}
+                        height={12}
+                        className="ml-1"
+                      />
+                    )}
+                  </span>
+                )}
+              </div>
+              <div className="text-[8px] text-gray-500 truncate">
+                {member.address}
+              </div>
             </div>
-            <div className="text-[8px] text-gray-500 truncate">
-              {member.address}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Contribute Modal */}

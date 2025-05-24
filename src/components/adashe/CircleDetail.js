@@ -259,7 +259,7 @@ const CircleDetail = () => {
         {detailTabView === "Schedule" ? (
           <PaymentSchedule circle={circleToDisplay} />
         ) : (
-          <TransactionHistory />
+          <TransactionHistory circleId={selectedCircleId} />
         )}
       </div>
     </div>
