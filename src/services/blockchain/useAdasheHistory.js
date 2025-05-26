@@ -102,7 +102,7 @@ export async function getAdasheContributionHistory(
       return [];
     }
   } catch (error) {
-    console.error("[getAdasheContributionHistory] Error:", error);
+    
     return [];
   }
 }
@@ -211,7 +211,7 @@ export async function getAdasheWithdrawalHistory(
       return [];
     }
   } catch (error) {
-    console.error("[getAdasheWithdrawalHistory] Error:", error);
+    
     return [];
   }
 }
@@ -239,7 +239,7 @@ export async function getAllAdasheTransactionHistory(embeddedWallet) {
     const adasheAddresses = await getAllAdasheAddresses(embeddedWallet);
 
     if (!adasheAddresses || adasheAddresses.length === 0) {
-      console.log("[getAllAdasheTransactionHistory] No Adashe addresses found");
+      
       return [];
     }
 
@@ -322,7 +322,7 @@ export async function getAdasheCircleTransactionHistory(
 
     return allTransactions;
   } catch (error) {
-    console.error("[getAdasheCircleTransactionHistory] Error:", error);
+    
     return [];
   }
 }

@@ -2,7 +2,7 @@ import { BrowserProvider, Contract } from "ethers";
 import adasheFactory from "@/ABI/AdasheFactory.json";
 
 // The factory contract address as specified in the interface
-const ADASHE_FACTORY_ADDRESS = "0x4231B9fa832eeFff2f473646bAe830aeCD0e558A";
+const ADASHE_FACTORY_ADDRESS = "0xF7f0cac92371B40bca24Cd34Eb643e0A224e2feC";
 
 const ADASHE_FACTORY_ABI = adasheFactory.abi;
 
@@ -19,13 +19,13 @@ export async function createAdasheAddress(embeddedWallet, onSuccess, onError) {
       throw new Error("Embedded wallet not found");
     }
 
-    console.log("[createAdasheAddress] Starting creation process");
+    // Starting creation process
 
     const provider = await embeddedWallet.getEthereumProvider();
     const ethersProvider = new BrowserProvider(provider);
     const signer = await ethersProvider.getSigner();
     const walletAddress = await signer.getAddress();
-    console.log("[createAdasheAddress] Using wallet address:", walletAddress);
+    // Using wallet address for transaction
 
     // Create a new Adashe contract through the factory
     const factoryContract = new Contract(
@@ -34,27 +34,21 @@ export async function createAdasheAddress(embeddedWallet, onSuccess, onError) {
       signer
     );
 
-    console.log(
-      "[createAdasheAddress] Factory contract address:",
-      ADASHE_FACTORY_ADDRESS
-    );
-    console.log("[createAdasheAddress] Calling createAdashe");
+    // Factory contract initialized
+    // Calling createAdashe
 
     // Store addresses before transaction to compare later
     const addressesBefore = await factoryContract.getAdashes();
     const addressesBeforeSet = new Set(
       addressesBefore.map((addr) => addr.toLowerCase())
     );
-    console.log(
-      "[createAdasheAddress] Addresses before:",
-      addressesBefore.length
-    );
+    // Addresses before transaction recorded
 
     // Create the Adashe contract
     const tx = await factoryContract.createAdashe();
-    console.log("[createAdasheAddress] Transaction hash:", tx.hash);
+    // Transaction submitted
     const receipt = await tx.wait();
-    console.log("[createAdasheAddress] Receipt:", receipt);
+    // Transaction receipt received
 
     // First attempt: Try to get the address from contract event
     let newAdasheAddress = null;
@@ -72,10 +66,7 @@ export async function createAdasheAddress(embeddedWallet, onSuccess, onError) {
 
           // Check if this is the AdasheCreated event
           if (parsedLog && parsedLog.name === "AdasheCreated") {
-            console.log(
-              "[createAdasheAddress] Found AdasheCreated event:",
-              parsedLog
-            );
+            // Found AdasheCreated event
 
             // Try different argument formats based on your contract's event structure
             if (parsedLog.args) {
@@ -93,41 +84,31 @@ export async function createAdasheAddress(embeddedWallet, onSuccess, onError) {
             }
           }
         } catch (parseError) {
-          console.warn("[createAdasheAddress] Error parsing log:", parseError);
+          // Error parsing log
         }
       }
     }
 
     // Second attempt: Compare addresses before and after
     if (!newAdasheAddress) {
-      console.log(
-        "[createAdasheAddress] No address from event, comparing addresses before and after"
-      );
+      // No address from event, comparing addresses before and after
       const addressesAfter = await factoryContract.getAdashes();
-      console.log(
-        "[createAdasheAddress] Addresses after:",
-        addressesAfter.length
-      );
+      // Addresses after transaction retrieved
 
       // Find new addresses that weren't there before
       const newAddresses = addressesAfter.filter(
         (addr) => !addressesBeforeSet.has(addr.toLowerCase())
       );
 
-      console.log("[createAdasheAddress] New addresses found:", newAddresses);
+      // New addresses found
 
       if (newAddresses.length === 1) {
         // If there's exactly one new address, it must be ours
         newAdasheAddress = newAddresses[0];
-        console.log(
-          "[createAdasheAddress] Found single new address:",
-          newAdasheAddress
-        );
+        // Found single new address
       } else if (newAddresses.length > 1) {
         // Multiple new addresses found, we need to verify ownership
-        console.log(
-          "[createAdasheAddress] Multiple new addresses found, verifying ownership"
-        );
+        // Multiple new addresses found, verifying ownership
 
         // Find the first address that has our wallet as owner
         for (const addr of newAddresses) {
@@ -181,7 +162,7 @@ export async function createAdasheAddress(embeddedWallet, onSuccess, onError) {
 }
 
 /**
- * Get all the Adashe addresses created by the factory
+ * Get all the Adashe addresses created by the factory (legacy method)
  * @param {Object} embeddedWallet - User's embedded wallet from Privy
  * @returns {Promise<Array>} Array of Adashe addresses
  */
@@ -253,6 +234,94 @@ export async function getAllAdasheAddresses(embeddedWallet) {
   } catch (error) {
     console.error(
       "[getAllAdasheAddresses] Failed to get Adashe addresses:",
+      error
+    );
+    // Return empty array instead of throwing to prevent app crashes
+    return [];
+  }
+}
+
+/**
+ * Get active Adashe circles for the current user
+ * @param {Object} embeddedWallet - User's embedded wallet from Privy
+ * @returns {Promise<Array>} Array of active Adashe addresses for the current user
+ */
+export async function getActiveAdasheAddresses(embeddedWallet) {
+  try {
+    if (!embeddedWallet) {
+      throw new Error("Embedded wallet not found");
+    }
+
+    console.log("[getActiveAdasheAddresses] Starting");
+
+    const provider = await embeddedWallet.getEthereumProvider();
+    const ethersProvider = new BrowserProvider(provider);
+    const signer = await ethersProvider.getSigner();
+
+    // Check if factory contract exists at address
+    try {
+      const code = await ethersProvider.getCode(ADASHE_FACTORY_ADDRESS);
+      if (!code || code === "0x") {
+        console.warn(
+          `[getActiveAdasheAddresses] No factory contract at address: ${ADASHE_FACTORY_ADDRESS}`
+        );
+        return [];
+      }
+    } catch (codeError) {
+      console.error(
+        "[getActiveAdasheAddresses] Error checking contract code:",
+        codeError
+      );
+      return [];
+    }
+
+    // Get active Adashe circles for current user from the factory
+    const factoryContract = new Contract(
+      ADASHE_FACTORY_ADDRESS,
+      ADASHE_FACTORY_ABI,
+      signer
+    );
+
+    console.log(
+      "[getActiveAdasheAddresses] Getting active circles from factory"
+    );
+
+    // Use a timeout to prevent hanging
+    const activeCircleAddresses = await Promise.race([
+      factoryContract.getActiveCircle(),
+      new Promise((resolve, reject) =>
+        setTimeout(() => {
+          console.warn("[getActiveAdasheAddresses] Request timed out");
+          resolve([]); // Resolve with empty array on timeout rather than rejecting
+        }, 15000)
+      ),
+    ]);
+
+    console.log(
+      "[getActiveAdasheAddresses] Active circle addresses:",
+      activeCircleAddresses
+    );
+
+    // Filter out any invalid addresses
+    const validAddresses = activeCircleAddresses.filter(
+      (addr) => addr && typeof addr === "string" && addr.startsWith("0x")
+    );
+
+    if (validAddresses.length < activeCircleAddresses.length) {
+      console.warn(
+        `[getActiveAdasheAddresses] Filtered out ${
+          activeCircleAddresses.length - validAddresses.length
+        } invalid addresses`
+      );
+    }
+
+    console.log(
+      `[getActiveAdasheAddresses] Returning ${validAddresses.length} active circles`
+    );
+    return validAddresses;
+  } catch (error) {
+    console.error(
+      "[getActiveAdasheAddresses] Failed to get active Adashe addresses:",
       error
     );
     // Return empty array instead of throwing to prevent app crashes

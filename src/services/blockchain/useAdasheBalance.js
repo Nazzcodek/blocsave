@@ -22,26 +22,40 @@ export async function getAdasheBalance(embeddedWallet, adasheAddress) {
     const signer = await ethersProvider.getSigner();
     const userAddress = await signer.getAddress();
 
-    console.log("[getAdasheBalance] Starting for user:", userAddress);
-    console.log("[getAdasheBalance] Using Adashe address:", adasheAddress);
+    // Starting getAdasheBalance for user
 
     // Check if contract exists at address
     const code = await ethersProvider.getCode(adasheAddress);
     if (!code || code === "0x") {
-      console.warn(
-        `[getAdasheBalance] No contract deployed at address: ${adasheAddress}`
-      );
+      // No contract deployed at address
       return {
         contributedWeeks: 0,
         totalContribution: 0,
         currentWeek: 0,
+        isMember: false,
+        memberDetails: null,
         isCompleted: false,
+        canContribute: false,
         status: "invalid_contract",
       };
     }
 
     // Connect to the Adashe contract
     const contract = new Contract(adasheAddress, ADASHE_CONTRACT_ABI, signer);
+
+    // Check if user is a member first
+    let isMember = false;
+    try {
+      isMember = await Promise.race([
+        contract.isMember(userAddress),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("isMember timeout")), 10000)
+        ),
+      ]);
+      // Is member check completed
+    } catch (memberError) {
+      // Error checking membership
+    }
 
     // Get contribution progress safely
     let contributedWeeks = 0;
@@ -57,16 +71,16 @@ export async function getAdasheBalance(embeddedWallet, adasheAddress) {
           )
         ),
       ]);
-      console.log("[getAdasheBalance] Progress:", progress);
+      // Progress retrieved
 
       contributedWeeks = Number(progress[0]);
       totalContribution = Number(formatUnits(progress[1], 6)); // Assuming 6 decimals for USDC
     } catch (progressError) {
-      console.error(
-        "[getAdasheBalance] Error fetching contribution progress:",
-        progressError
-      );
-      // Continue with default values
+      // Error fetching contribution progress
+      // Continue with default values if not a member
+      if (!isMember) {
+        // User is not a member, using default values
+      }
     }
 
     // Get current week separately to isolate potential issues
@@ -78,30 +92,53 @@ export async function getAdasheBalance(embeddedWallet, adasheAddress) {
           setTimeout(() => reject(new Error("getCurrentWeek timeout")), 10000)
         ),
       ]);
-      console.log("[getAdasheBalance] Current week:", currentWeek);
+      // Current week retrieved
       currentWeek = Number(currentWeek);
     } catch (weekError) {
-      console.error(
-        "[getAdasheBalance] Error fetching current week:",
-        weekError
-      );
+      // Error fetching current week
       // Use default value of 0
+    }
+
+    // Get additional member details if user is a member
+    let memberDetails = null;
+    if (isMember) {
+      try {
+        memberDetails = await Promise.race([
+          contract.getMemberDetails(userAddress),
+          new Promise((_, reject) =>
+            setTimeout(
+              () => reject(new Error("getMemberDetails timeout")),
+              10000
+            )
+          ),
+        ]);
+      } catch (detailsError) {
+        console.error(
+          "[getAdasheBalance] Error fetching member details:",
+          detailsError
+        );
+      }
     }
 
     return {
       contributedWeeks,
       totalContribution,
       currentWeek,
-      isCompleted: contributedWeeks >= currentWeek,
+      isMember,
+      memberDetails,
+      isCompleted: contributedWeeks >= currentWeek && currentWeek > 0,
+      canContribute: isMember && contributedWeeks < currentWeek,
       status: "success",
     };
   } catch (error) {
-    console.error("[getAdasheBalance] Failed to fetch adashe balance:", error);
     return {
       contributedWeeks: 0,
       totalContribution: 0,
       currentWeek: 0,
+      isMember: false,
+      memberDetails: null,
       isCompleted: false,
+      canContribute: false,
       status: "error",
       error: error.message,
     };
@@ -143,14 +180,17 @@ export async function getAllAdasheBalances(embeddedWallet, adasheAddresses) {
             contributedWeeks: 0,
             totalContribution: 0,
             currentWeek: 0,
+            isMember: false,
+            memberDetails: null,
             isCompleted: false,
+            canContribute: false,
+            status: "error",
             error: error.message,
           };
         })
     );
 
     const balances = await Promise.all(balancePromises);
-    console.log("[getAllAdasheBalances] All balances:", balances);
 
     return balances;
   } catch (error) {

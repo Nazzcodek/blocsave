@@ -8,7 +8,7 @@ const CircleSummary = ({
   frequency,
 }) => {
   // Set unit label based on frequency
-  const unitLabel = frequency === "Weekly" ? "Weeks" : "Months";
+  const unitLabel = frequency === "weekly" ? "Weeks" : "Months";
   const formattedFrequency =
     frequency.charAt(0).toUpperCase() + frequency.slice(1).toLowerCase();
 

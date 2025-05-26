@@ -172,14 +172,14 @@ const CreateCircleForm = () => {
             result.receipt.hash,
             ethersProvider,
             (receipt) => {
-              console.log("Transaction confirmed with receipt:", receipt);
+              // Transaction confirmed
 
               // Close any pending modals
               dispatch(closeModal());
             }
           );
         } catch (monitorError) {
-          console.error("Error monitoring transaction:", monitorError);
+          // Error monitoring transaction
         }
       }
 
@@ -212,8 +212,6 @@ const CreateCircleForm = () => {
       setCreationStep(0);
       setIsSubmitting(false);
     } catch (error) {
-      console.error("Error creating circle:", error);
-
       // Create a more user-friendly error message
       let errorMessage = error.message || "Unknown error";
       let errorStep = "creating your Adashe circle";

@@ -46,14 +46,13 @@ export async function createAdasheCircle(
       throw new Error("Adashe address not provided");
     }
 
-    console.log("[createAdasheCircle] Starting with circle name:", circleName);
-    console.log("[createAdasheCircle] Using Adashe address:", adasheAddress);
+    // Starting createAdasheCircle process
 
     const provider = await embeddedWallet.getEthereumProvider();
     const ethersProvider = new BrowserProvider(provider);
     const signer = await ethersProvider.getSigner();
     const walletAddress = await signer.getAddress();
-    console.log("[createAdasheCircle] Using wallet address:", walletAddress);
+    // Using wallet address for transaction
 
     // Connect to the Adashe contract
     const contract = new Contract(adasheAddress, ADASHE_CONTRACT_ABI, signer);
@@ -64,13 +63,7 @@ export async function createAdasheCircle(
       6
     );
 
-    console.log("[createAdasheCircle] Creating Adashe circle with params:", {
-      circleName,
-      weeklyContribution: contributionInUnits.toString(),
-      noOfMembers,
-      frequency,
-      creatorName,
-    });
+    // Creating Adashe circle with parameters
 
     // Create the Adashe circle
     const tx = await contract.createAdashe(
@@ -81,26 +74,23 @@ export async function createAdasheCircle(
       creatorName
     );
 
-    console.log("[createAdasheCircle] Transaction hash:", tx.hash);
+    // Transaction submitted
     const receipt = await tx.wait();
-    console.log("[createAdasheCircle] Receipt:", receipt);
+    // Transaction receipt received
 
     // Check if transaction was successful
     if (receipt.status === 1) {
-      console.log("[createAdasheCircle] Transaction succeeded");
+      // Transaction succeeded
       if (onSuccess) onSuccess(receipt);
       return receipt;
     } else {
       const error = new Error("Transaction failed");
-      console.error("[createAdasheCircle] Transaction failed:", error);
+      // Transaction failed
       if (onError) onError(error);
       throw error;
     }
   } catch (error) {
-    console.error(
-      "[createAdasheCircle] Failed to create Adashe circle:",
-      error
-    );
+    // Failed to create Adashe circle
     if (onError) onError(error);
     throw error;
   }
@@ -129,11 +119,7 @@ export async function joinAdasheCircle(
     if (!userName || typeof userName !== "string")
       throw new Error("User name is required");
 
-    console.log(
-      "[joinAdasheCircle] Joining circle at address:",
-      contractAddress
-    );
-    console.log("[joinAdasheCircle] User name:", userName);
+    // Joining circle at specified address
 
     // Validate contract address format
     if (!contractAddress.startsWith("0x") || contractAddress.length !== 42) {
@@ -147,36 +133,34 @@ export async function joinAdasheCircle(
     const walletAddress = await signer.getAddress();
     const contract = new Contract(contractAddress, ADASHE_CONTRACT_ABI, signer);
 
-    console.log("[joinAdasheCircle] User wallet address:", walletAddress);
+    // User wallet address retrieved
 
     // Verify the contract exists and is valid by checking the adashe details
     try {
       const details = await contract.adashe();
-      console.log("[joinAdasheCircle] Contract details:", details);
+      // Contract details retrieved
     } catch (error) {
       throw new Error("Invalid contract address or contract not found");
     }
 
     // PRE-FLIGHT CHECKS: Check membership status before attempting to join
-    console.log(
-      "[joinAdasheCircle] Performing pre-flight membership checks..."
-    );
+    // Performing pre-flight membership checks...
 
     try {
       // Check if user is the owner/creator
       const owner = await contract.owner();
-      console.log("[joinAdasheCircle] Contract owner:", owner);
+      // Contract owner retrieved
 
       if (owner.toLowerCase() === walletAddress.toLowerCase()) {
         const message =
           "You are the creator of this circle and are already a member.";
-        console.log("[joinAdasheCircle]", message);
+        // User is creator and already member
         return { message, alreadyMember: true, isOwner: true };
       }
 
       // Check if user is already a member
       const members = await contract.getMembers();
-      console.log("[joinAdasheCircle] Current members:", members);
+      // Current members retrieved
 
       const isMember = members.some(
         (member) => member.toLowerCase() === walletAddress.toLowerCase()
@@ -184,7 +168,7 @@ export async function joinAdasheCircle(
 
       if (isMember) {
         const message = "You are already a member of this circle.";
-        console.log("[joinAdasheCircle]", message);
+        // User is already a member
         return { message, alreadyMember: true, isOwner: false };
       }
 
@@ -196,25 +180,21 @@ export async function joinAdasheCircle(
         throw new Error("This circle is full and cannot accept new members.");
       }
 
-      console.log(
-        "[joinAdasheCircle] Pre-flight checks passed. User can join."
-      );
+      // Pre-flight checks passed. User can join.
     } catch (error) {
       // If it's a specific error we threw, re-throw it
       if (error.message.includes("circle is full")) {
         throw error;
       }
 
-      console.error("[joinAdasheCircle] Pre-flight check failed:", error);
+      // Pre-flight check failed
       // Continue with the transaction if pre-flight checks fail due to network issues
-      console.log(
-        "[joinAdasheCircle] Continuing with join attempt despite pre-flight check failure"
-      );
+      // Continuing with join attempt despite pre-flight check failure
     }
 
     // Attempt to join the Adashe circle with the user's name
     try {
-      console.log("[joinAdasheCircle] Attempting to join circle...");
+      // Attempting to join circle...
       const tx = await contract.joinAdashe(userName);
       console.log("[joinAdasheCircle] Join transaction submitted:", tx.hash);
 
@@ -250,7 +230,7 @@ export async function joinAdasheCircle(
   }
 }
 /**
- * Contribute to an Adashe circle for a specific week
+ * Contribute to an Adashe circle for a specific week with enhanced validation
  * @param {Object} embeddedWallet - User's embedded wallet from Privy
  * @param {string} adasheAddress - Address of the Adashe contract
  * @param {number} weekNumber - Week number to contribute for
@@ -289,8 +269,64 @@ export async function contributeToAdashe(
       amountInUnits.toString()
     );
 
-    // Approve the Adashe contract to spend USDC
+    // Connect to the Adashe contract for pre-flight checks
+    const contract = new Contract(adasheAddress, ADASHE_CONTRACT_ABI, signer);
+
+    // Pre-flight validation
+    try {
+      console.log("[contributeToAdashe] Performing pre-flight checks...");
+
+      // Check if user is a member
+      const members = await contract.getMembers();
+      const isMember = members.some(
+        (member) => member.toLowerCase() === walletAddress.toLowerCase()
+      );
+
+      if (!isMember) {
+        throw new Error("You are not a member of this Adashe circle");
+      }
+
+      // Check if user has already contributed for this week
+      const contribution = await contract.contributions(
+        walletAddress,
+        weekNumber
+      );
+      if (contribution.paid) {
+        throw new Error(`You have already contributed for week ${weekNumber}`);
+      }
+
+      // Get circle details to validate contribution amount
+      const adasheDetails = await contract.adashe();
+      const expectedAmount = adasheDetails.weeklyContribution;
+
+      if (amountInUnits.toString() !== expectedAmount.toString()) {
+        const expectedInUsdc = ethers.formatUnits(expectedAmount, 6);
+        throw new Error(
+          `Incorrect contribution amount. Expected: ${expectedInUsdc} USDC, Got: ${amount} USDC`
+        );
+      }
+
+      console.log("[contributeToAdashe] Pre-flight checks passed");
+    } catch (preflightError) {
+      console.error(
+        "[contributeToAdashe] Pre-flight check failed:",
+        preflightError
+      );
+      throw preflightError;
+    }
+
+    // Check USDC balance
     const usdcContract = new Contract(USDC_CONTRACT, erc20ABI, signer);
+    const balance = await usdcContract.balanceOf(walletAddress);
+
+    if (balance < amountInUnits) {
+      const balanceInUsdc = ethers.formatUnits(balance, 6);
+      throw new Error(
+        `Insufficient USDC balance. Required: ${amount} USDC, Available: ${balanceInUsdc} USDC`
+      );
+    }
+
+    // Approve the Adashe contract to spend USDC
     console.log(
       "[contributeToAdashe] Approving USDC spend for Adashe address:",
       adasheAddress
@@ -303,10 +339,8 @@ export async function contributeToAdashe(
     await approveTx.wait();
     console.log("[contributeToAdashe] Approval confirmed");
 
-    // Connect to the Adashe contract
-    const contract = new Contract(adasheAddress, ADASHE_CONTRACT_ABI, signer);
-
     // Contribute to the Adashe
+    console.log("[contributeToAdashe] Executing contribution transaction...");
     const tx = await contract.contribute(weekNumber, amountInUnits);
     console.log("[contributeToAdashe] Transaction hash:", tx.hash);
     const receipt = await tx.wait();
@@ -325,7 +359,7 @@ export async function contributeToAdashe(
 }
 
 /**
- * Withdraw from an Adashe circle
+ * Withdraw from an Adashe circle with enhanced validation
  * @param {Object} embeddedWallet - User's embedded wallet from Privy
  * @param {string} adasheAddress - Address of the Adashe contract
  * @param {Function} onSuccess - Callback function on successful withdrawal
@@ -349,15 +383,79 @@ export async function withdrawFromAdashe(
     const provider = await embeddedWallet.getEthereumProvider();
     const ethersProvider = new BrowserProvider(provider);
     const signer = await ethersProvider.getSigner();
+    const walletAddress = await signer.getAddress();
 
     // Connect to the Adashe contract
     const contract = new Contract(adasheAddress, ADASHE_CONTRACT_ABI, signer);
 
-    // Withdraw from the Adashe
+    // Pre-flight checks before withdrawal
+    try {
+      console.log("[withdrawFromAdashe] Performing pre-flight checks...");
+
+      // Check if user is a member
+      const members = await contract.getMembers();
+      const isMember = members.some(
+        (member) => member.toLowerCase() === walletAddress.toLowerCase()
+      );
+
+      if (!isMember) {
+        throw new Error("You are not a member of this Adashe circle");
+      }
+
+      // Get current week and user's position
+      const currentWeek = await contract.getCurrentWeek();
+      const memberIndex = members.findIndex(
+        (member) => member.toLowerCase() === walletAddress.toLowerCase()
+      );
+
+      console.log("[withdrawFromAdashe] Current week:", currentWeek.toString());
+      console.log("[withdrawFromAdashe] Member index:", memberIndex);
+      console.log(
+        "[withdrawFromAdashe] Expected recipient week:",
+        memberIndex + 1
+      );
+
+      // Check if it's the user's turn to withdraw (their week)
+      if (Number(currentWeek) !== memberIndex + 1) {
+        throw new Error(
+          `It's not your turn to withdraw. Current week is ${currentWeek}, your turn is week ${
+            memberIndex + 1
+          }`
+        );
+      }
+
+      // Check if user has already withdrawn for this week
+      const hasWithdrawn = await contract.memberWeekWithdrawals(
+        walletAddress,
+        currentWeek
+      );
+
+      if (hasWithdrawn) {
+        throw new Error("You have already withdrawn for this week");
+      }
+
+      console.log("[withdrawFromAdashe] Pre-flight checks passed");
+    } catch (preflightError) {
+      console.error(
+        "[withdrawFromAdashe] Pre-flight check failed:",
+        preflightError
+      );
+      throw preflightError;
+    }
+
+    // Perform the withdrawal
+    console.log("[withdrawFromAdashe] Executing withdrawal transaction...");
     const tx = await contract.withdraw();
-    console.log("[withdrawFromAdashe] Transaction hash:", tx.hash);
+    console.log("[withdrawFromAdashe] Transaction submitted, hash:", tx.hash);
+
+    // Notify that transaction is being processed on blockchain
+    console.log("[withdrawFromAdashe] Waiting for blockchain confirmation...");
+
     const receipt = await tx.wait();
-    console.log("[withdrawFromAdashe] Receipt:", receipt);
+    console.log(
+      "[withdrawFromAdashe] Transaction confirmed! Receipt:",
+      receipt
+    );
 
     if (onSuccess) onSuccess(receipt);
     return receipt;

@@ -39,7 +39,7 @@ const TransactionHistory = ({ circleId = null }) => {
 
         setTransactions(historyData || []);
       } catch (err) {
-        console.error("Error fetching transaction history:", err);
+        // Error fetching transaction history
         setError(err.message || "Failed to load transaction history");
         setTransactions([]);
       } finally {

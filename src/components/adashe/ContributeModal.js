@@ -65,7 +65,7 @@ const ContributeModal = ({ circle, onClose = () => {} }) => {
         setBalanceChecked(true);
         setHasEnoughBalance(balance >= amountWei);
       } catch (error) {
-        console.error("Failed to check balance:", error);
+        // Failed to check balance
         setBalanceChecked(true);
         // Default to true to avoid blocking contribution attempts
         setHasEnoughBalance(true);
@@ -99,7 +99,7 @@ const ContributeModal = ({ circle, onClose = () => {} }) => {
         throw new Error("Transaction failed");
       }
     } catch (error) {
-      console.error("Transaction status check failed:", error);
+      // Transaction status check failed
       setTransactionStatus("failed");
       throw error;
     }
@@ -204,11 +204,7 @@ const ContributeModal = ({ circle, onClose = () => {} }) => {
       const diagnostics = await diagnoseWalletConnection(embeddedWallet);
 
       if (diagnostics.wallet.errors.length > 0) {
-        console.warn(
-          "Wallet diagnosis found issues:",
-          diagnostics.wallet.errors
-        );
-        // Don't block execution but log issues
+        // Wallet diagnosis found issues - don't block execution but log issues
       }
 
       if (!diagnostics.wallet.providerAvailable) {
@@ -279,7 +275,7 @@ const ContributeModal = ({ circle, onClose = () => {} }) => {
               txData,
               adasheABI.default
             );
-            console.warn("Transaction failed analysis:", analysis);
+            // Transaction failed analysis available
 
             throw new Error(
               "Transaction was processed but failed on the blockchain"
@@ -289,7 +285,7 @@ const ContributeModal = ({ circle, onClose = () => {} }) => {
           // Transaction successful!
           setTransactionStatus("confirmed");
         } catch (monitorError) {
-          console.error("Error monitoring transaction:", monitorError);
+          // Error monitoring transaction
           setTransactionStatus("failed");
           throw monitorError;
         }
@@ -312,9 +308,6 @@ const ContributeModal = ({ circle, onClose = () => {} }) => {
 
       onClose();
     } catch (error) {
-      // Log detailed error info
-      console.error("Failed to contribute:", error);
-
       // Close any pending modals
       dispatch(closeModal());
 
@@ -336,8 +329,23 @@ const ContributeModal = ({ circle, onClose = () => {} }) => {
       } else if (errorMessage.includes("insufficient funds")) {
         errorMessage = "You don't have enough ETH for transaction fees.";
         possibleSolutions = ["Add more ETH to your wallet for gas fees"];
-      } else if (errorMessage.includes("user denied")) {
-        errorMessage = "You rejected the transaction in your wallet.";
+      } else if (
+        errorMessage.includes("user denied") ||
+        errorMessage.includes("User rejected") ||
+        errorMessage.includes("ethers-user-denied")
+      ) {
+        errorMessage = "Transaction was cancelled.";
+        possibleSolutions = [
+          "You cancelled the transaction in your wallet",
+          "Click 'Contribute' again if you want to retry",
+          "Make sure to approve the transaction when prompted",
+        ];
+      } else if (errorMessage.includes("already contributed")) {
+        errorMessage = "You have already contributed for this week.";
+        possibleSolutions = [
+          "Wait for the next contribution period",
+          "Check your contribution history for details",
+        ];
       }
 
       // Use modal instead of alert

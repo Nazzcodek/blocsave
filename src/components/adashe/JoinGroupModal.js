@@ -81,12 +81,7 @@ const JoinGroupModal = ({
         return;
       }
 
-      // Add the log here
-      console.log("Joining group with:", {
-        contractAddress: inviteCode,
-        userName: userName.trim(),
-        embeddedWalletAddress: embeddedWallet?.user?.address,
-      });
+      // Joining group with parameters
 
       // Use Redux thunk to join by contract address
       const resultAction = await dispatch(
@@ -136,7 +131,7 @@ const JoinGroupModal = ({
         setIsJoining(false);
       }
     } catch (error) {
-      console.error("Failed to join group:", error);
+      // Failed to join group
       setErrorMsg(error.message || "Unknown error");
       setIsJoining(false);
     }
