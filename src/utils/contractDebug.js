@@ -7,9 +7,7 @@ import { DEBUG_MODE } from "./debug";
  * @param {object} details - Details about the operation
  */
 export function logContractOperation(operation, details) {
-  if (DEBUG_MODE) {
-    console.log(`[CONTRACT DEBUG] ${operation}:`, details);
-  }
+  // Removed all console.log and console.error statements for security
 }
 
 /**
@@ -37,9 +35,7 @@ export function formatContractError(error) {
       : "No transaction data",
   };
 
-  if (DEBUG_MODE) {
-    console.error("[CONTRACT ERROR]", errorInfo);
-  }
+  // Removed all console.log and console.error statements for security
 
   // Format a user-friendly error message
   let friendlyMessage = errorInfo.message;

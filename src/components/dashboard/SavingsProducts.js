@@ -10,7 +10,6 @@ import { getSafelockSummary } from "@/services/blockchain/useSafeLockHistory";
 const ProductCard = ({ product, actualBalance }) => {
   const { type, description } = product;
 
-  // Use actualBalance if available (for QuickSave or SafeLock), otherwise use the product balance
   const balance =
     (type.toLowerCase() === "quicksave" || type.toLowerCase() === "safelock") &&
     actualBalance !== null

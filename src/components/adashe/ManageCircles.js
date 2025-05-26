@@ -40,7 +40,6 @@ const ManageCircles = ({ onViewDetails }) => {
             }
           }
         } catch (error) {
-          console.error("Failed to load circles:", error);
           setIsLoadingMore(false);
         } finally {
           setIsInitialLoad(false);

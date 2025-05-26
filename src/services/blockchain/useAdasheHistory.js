@@ -26,17 +26,11 @@ export async function getAdasheContributionHistory(
     const signer = await ethersProvider.getSigner();
     const userAddress = await signer.getAddress();
 
-    console.log(
-      "[getAdasheContributionHistory] Getting history for:",
-      adasheAddress
-    );
+    // Removed all console.log, console.warn, and console.error statements for security
 
     // Check if contract exists
     const code = await ethersProvider.getCode(adasheAddress);
     if (!code || code === "0x") {
-      console.warn(
-        `[getAdasheContributionHistory] No contract at address: ${adasheAddress}`
-      );
       return [];
     }
 
@@ -58,10 +52,6 @@ export async function getAdasheContributionHistory(
         circleName = adasheDetails.circleName || circleName;
         weeklyAmount = Number(formatUnits(adasheDetails.weeklyContribution, 6));
       } catch (detailsError) {
-        console.warn(
-          "[getAdasheContributionHistory] Could not get circle details:",
-          detailsError
-        );
         // Calculate weekly amount from total if we have contributions
         weeklyAmount =
           contributedWeeks > 0 ? totalContribution / contributedWeeks : 0;
@@ -95,14 +85,9 @@ export async function getAdasheContributionHistory(
 
       return contributions;
     } catch (progressError) {
-      console.error(
-        "[getAdasheContributionHistory] Error getting progress:",
-        progressError
-      );
       return [];
     }
   } catch (error) {
-    
     return [];
   }
 }
@@ -128,17 +113,11 @@ export async function getAdasheWithdrawalHistory(
     const signer = await ethersProvider.getSigner();
     const userAddress = await signer.getAddress();
 
-    console.log(
-      "[getAdasheWithdrawalHistory] Getting withdrawal history for:",
-      adasheAddress
-    );
+    // Removed all console.log, console.warn, and console.error statements for security
 
     // Check if contract exists
     const code = await ethersProvider.getCode(adasheAddress);
     if (!code || code === "0x") {
-      console.warn(
-        `[getAdasheWithdrawalHistory] No contract at address: ${adasheAddress}`
-      );
       return [];
     }
 
@@ -158,10 +137,7 @@ export async function getAdasheWithdrawalHistory(
       const members = await contract.getMembers();
       totalMembers = members.length;
     } catch (detailsError) {
-      console.warn(
-        "[getAdasheWithdrawalHistory] Could not get circle details:",
-        detailsError
-      );
+      // Do not return details on error for security
     }
 
     // For demonstration, we'll check if user has eligible withdrawal
@@ -204,14 +180,9 @@ export async function getAdasheWithdrawalHistory(
 
       return withdrawals;
     } catch (withdrawalError) {
-      console.error(
-        "[getAdasheWithdrawalHistory] Error checking withdrawals:",
-        withdrawalError
-      );
       return [];
     }
   } catch (error) {
-    
     return [];
   }
 }
@@ -225,27 +196,17 @@ export async function getAdasheWithdrawalHistory(
 export async function getAllAdasheTransactionHistory(embeddedWallet) {
   try {
     if (!embeddedWallet) {
-      console.warn(
-        "[getAllAdasheTransactionHistory] No embedded wallet provided"
-      );
       return [];
     }
 
-    console.log(
-      "[getAllAdasheTransactionHistory] Starting to fetch all Adashe transaction history"
-    );
+    // Removed all console.log, console.warn, and console.error statements for security
 
     // Get all user's Adashe addresses
     const adasheAddresses = await getAllAdasheAddresses(embeddedWallet);
 
     if (!adasheAddresses || adasheAddresses.length === 0) {
-      
       return [];
     }
-
-    console.log(
-      `[getAllAdasheTransactionHistory] Found ${adasheAddresses.length} Adashe contracts`
-    );
 
     // Get transaction history for each Adashe contract
     const historyPromises = adasheAddresses.map(async (address) => {
@@ -257,10 +218,6 @@ export async function getAllAdasheTransactionHistory(embeddedWallet) {
 
         return [...contributions, ...withdrawals];
       } catch (error) {
-        console.error(
-          `[getAllAdasheTransactionHistory] Error for address ${address}:`,
-          error
-        );
         return [];
       }
     });
@@ -272,16 +229,8 @@ export async function getAllAdasheTransactionHistory(embeddedWallet) {
       .flat()
       .sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    console.log(
-      `[getAllAdasheTransactionHistory] Found ${allTransactions.length} total transactions`
-    );
-
     return allTransactions;
   } catch (error) {
-    console.error(
-      "[getAllAdasheTransactionHistory] Failed to fetch transaction history:",
-      error
-    );
     return [];
   }
 }
@@ -302,10 +251,6 @@ export async function getAdasheCircleTransactionHistory(
       return [];
     }
 
-    console.log(
-      `[getAdasheCircleTransactionHistory] Getting history for circle: ${adasheAddress}`
-    );
-
     const [contributions, withdrawals] = await Promise.all([
       getAdasheContributionHistory(embeddedWallet, adasheAddress),
       getAdasheWithdrawalHistory(embeddedWallet, adasheAddress),
@@ -316,13 +261,89 @@ export async function getAdasheCircleTransactionHistory(
       (a, b) => new Date(b.date) - new Date(a.date)
     );
 
-    console.log(
-      `[getAdasheCircleTransactionHistory] Found ${allTransactions.length} transactions for circle`
-    );
-
     return allTransactions;
   } catch (error) {
-    
+    return [];
+  }
+}
+
+/**
+ * Get all contribute and payout transactions for a group from on-chain events
+ * @param {object} embeddedWallet - Privy embedded wallet object
+ * @param {string} adasheAddress - Address of the Adashe contract
+ * @returns {Promise<Array>} - Array of all group transactions (contributions and payouts)
+ */
+export async function getAdasheGroupTransactionEvents(
+  embeddedWallet,
+  adasheAddress
+) {
+  try {
+    // Use a public provider for group history, do NOT require wallet
+    let ethersProvider;
+    // Use window.ethereum if available, otherwise fallback to Base Sepolia testnet
+    if (typeof window !== "undefined" && window.ethereum) {
+      ethersProvider = new BrowserProvider(window.ethereum);
+    } else {
+      // Use Base Sepolia public RPC endpoint
+      const { JsonRpcProvider } = await import("ethers");
+      ethersProvider = new JsonRpcProvider("https://sepolia.base.org");
+    }
+    if (!adasheAddress) return [];
+    const contract = new Contract(
+      adasheAddress,
+      ADASHE_CONTRACT_ABI,
+      ethersProvider
+    );
+
+    // Get event topics using ethers.id (ethers v6)
+    const { id } = await import("ethers");
+    const depositTopic = id("AdasheDeposit(address,uint256,uint256)");
+    const withdrawTopic = id("Withdraw(address,uint256,uint256)");
+
+    // Query all AdasheDeposit events
+    const depositLogs = await ethersProvider.getLogs({
+      address: adasheAddress,
+      topics: [depositTopic],
+      fromBlock: 0,
+      toBlock: "latest",
+    });
+    // Query all Withdraw events
+    const withdrawLogs = await ethersProvider.getLogs({
+      address: adasheAddress,
+      topics: [withdrawTopic],
+      fromBlock: 0,
+      toBlock: "latest",
+    });
+
+    // Parse logs (ethers v6)
+    const deposits = depositLogs.map((log) => {
+      const parsed = contract.parseLog(log);
+      return {
+        id: `contribution-${log.transactionHash}`,
+        type: "contribution",
+        user: parsed.args.user,
+        amount: Number(formatUnits(parsed.args.amount, 6)),
+        date: new Date(Number(parsed.args.time) * 1000),
+        txHash: log.transactionHash,
+        contractAddress: adasheAddress,
+      };
+    });
+    const payouts = withdrawLogs.map((log) => {
+      const parsed = contract.parseLog(log);
+      return {
+        id: `payout-${log.transactionHash}`,
+        type: "payout",
+        user: parsed.args.user,
+        amount: Number(formatUnits(parsed.args.amount, 6)),
+        date: new Date(Number(parsed.args.time) * 1000),
+        txHash: log.transactionHash,
+        contractAddress: adasheAddress,
+      };
+    });
+    // Combine and sort by date (newest first)
+    const all = [...deposits, ...payouts].sort((a, b) => b.date - a.date);
+    return all;
+  } catch (error) {
     return [];
   }
 }

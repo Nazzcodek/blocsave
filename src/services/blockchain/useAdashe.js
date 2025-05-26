@@ -1,7 +1,7 @@
 import { ethers } from "ethers";
 import adashe from "@/ABI/Adashe.json";
 import { BrowserProvider, Contract } from "ethers";
-import { getAllAdasheAddresses } from "./useAdasheFactory";
+import { handleContractError } from "@/utils/contractErrors";
 
 const USDC_CONTRACT = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
 const ADASHE_CONTRACT_ABI = adashe.abi;
@@ -206,9 +206,6 @@ export async function joinAdasheCircle(
     } catch (joinError) {
       console.error("[joinAdasheCircle] Join transaction failed:", joinError);
 
-      // Import our enhanced error handling
-      const { handleContractError } = await import("@/utils/contractErrors");
-
       // Handle the error with context
       const userFriendlyError = handleContractError(joinError, {
         operation: "joinAdashe",
@@ -252,40 +249,19 @@ export async function contributeToAdashe(
       throw new Error("Embedded wallet not found");
     }
 
-    console.log("[contributeToAdashe] Starting with amount:", amount);
-    console.log("[contributeToAdashe] For week number:", weekNumber);
-    console.log("[contributeToAdashe] Using Adashe address:", adasheAddress);
-
     const provider = await embeddedWallet.getEthereumProvider();
     const ethersProvider = new BrowserProvider(provider);
     const signer = await ethersProvider.getSigner();
     const walletAddress = await signer.getAddress();
-    console.log("[contributeToAdashe] Using wallet address:", walletAddress);
 
     // Parse the amount to proper units (assuming USDC with 6 decimals)
     const amountInUnits = ethers.parseUnits(amount.toString(), 6);
-    console.log(
-      "[contributeToAdashe] Amount in USDC units:",
-      amountInUnits.toString()
-    );
 
     // Connect to the Adashe contract for pre-flight checks
     const contract = new Contract(adasheAddress, ADASHE_CONTRACT_ABI, signer);
 
     // Pre-flight validation
     try {
-      console.log("[contributeToAdashe] Performing pre-flight checks...");
-
-      // Check if user is a member
-      const members = await contract.getMembers();
-      const isMember = members.some(
-        (member) => member.toLowerCase() === walletAddress.toLowerCase()
-      );
-
-      if (!isMember) {
-        throw new Error("You are not a member of this Adashe circle");
-      }
-
       // Check if user has already contributed for this week
       const contribution = await contract.contributions(
         walletAddress,
@@ -305,13 +281,7 @@ export async function contributeToAdashe(
           `Incorrect contribution amount. Expected: ${expectedInUsdc} USDC, Got: ${amount} USDC`
         );
       }
-
-      console.log("[contributeToAdashe] Pre-flight checks passed");
     } catch (preflightError) {
-      console.error(
-        "[contributeToAdashe] Pre-flight check failed:",
-        preflightError
-      );
       throw preflightError;
     }
 
@@ -327,32 +297,16 @@ export async function contributeToAdashe(
     }
 
     // Approve the Adashe contract to spend USDC
-    console.log(
-      "[contributeToAdashe] Approving USDC spend for Adashe address:",
-      adasheAddress
-    );
     const approveTx = await usdcContract.approve(adasheAddress, amountInUnits);
-    console.log(
-      "[contributeToAdashe] Approval transaction hash:",
-      approveTx.hash
-    );
     await approveTx.wait();
-    console.log("[contributeToAdashe] Approval confirmed");
 
     // Contribute to the Adashe
-    console.log("[contributeToAdashe] Executing contribution transaction...");
     const tx = await contract.contribute(weekNumber, amountInUnits);
-    console.log("[contributeToAdashe] Transaction hash:", tx.hash);
     const receipt = await tx.wait();
-    console.log("[contributeToAdashe] Receipt:", receipt);
 
     if (onSuccess) onSuccess(receipt);
     return receipt;
   } catch (error) {
-    console.error(
-      "[contributeToAdashe] Failed to contribute to Adashe:",
-      error
-    );
     if (onError) onError(error);
     throw error;
   }
@@ -377,9 +331,6 @@ export async function withdrawFromAdashe(
       throw new Error("Embedded wallet not found");
     }
 
-    console.log("[withdrawFromAdashe] Starting withdrawal");
-    console.log("[withdrawFromAdashe] Using Adashe address:", adasheAddress);
-
     const provider = await embeddedWallet.getEthereumProvider();
     const ethersProvider = new BrowserProvider(provider);
     const signer = await ethersProvider.getSigner();
@@ -390,8 +341,6 @@ export async function withdrawFromAdashe(
 
     // Pre-flight checks before withdrawal
     try {
-      console.log("[withdrawFromAdashe] Performing pre-flight checks...");
-
       // Check if user is a member
       const members = await contract.getMembers();
       const isMember = members.some(
@@ -406,13 +355,6 @@ export async function withdrawFromAdashe(
       const currentWeek = await contract.getCurrentWeek();
       const memberIndex = members.findIndex(
         (member) => member.toLowerCase() === walletAddress.toLowerCase()
-      );
-
-      console.log("[withdrawFromAdashe] Current week:", currentWeek.toString());
-      console.log("[withdrawFromAdashe] Member index:", memberIndex);
-      console.log(
-        "[withdrawFromAdashe] Expected recipient week:",
-        memberIndex + 1
       );
 
       // Check if it's the user's turn to withdraw (their week)
@@ -433,37 +375,17 @@ export async function withdrawFromAdashe(
       if (hasWithdrawn) {
         throw new Error("You have already withdrawn for this week");
       }
-
-      console.log("[withdrawFromAdashe] Pre-flight checks passed");
     } catch (preflightError) {
-      console.error(
-        "[withdrawFromAdashe] Pre-flight check failed:",
-        preflightError
-      );
       throw preflightError;
     }
 
     // Perform the withdrawal
-    console.log("[withdrawFromAdashe] Executing withdrawal transaction...");
     const tx = await contract.withdraw();
-    console.log("[withdrawFromAdashe] Transaction submitted, hash:", tx.hash);
-
-    // Notify that transaction is being processed on blockchain
-    console.log("[withdrawFromAdashe] Waiting for blockchain confirmation...");
-
     const receipt = await tx.wait();
-    console.log(
-      "[withdrawFromAdashe] Transaction confirmed! Receipt:",
-      receipt
-    );
 
     if (onSuccess) onSuccess(receipt);
     return receipt;
   } catch (error) {
-    console.error(
-      "[withdrawFromAdashe] Failed to withdraw from Adashe:",
-      error
-    );
     if (onError) onError(error);
     throw error;
   }
@@ -481,9 +403,6 @@ export async function getAdasheMembers(embeddedWallet, adasheAddress) {
       throw new Error("Embedded wallet not found");
     }
 
-    console.log("[getAdasheMembers] Starting");
-    console.log("[getAdasheMembers] Using Adashe address:", adasheAddress);
-
     const provider = await embeddedWallet.getEthereumProvider();
     const ethersProvider = new BrowserProvider(provider);
     const signer = await ethersProvider.getSigner();
@@ -493,10 +412,7 @@ export async function getAdasheMembers(embeddedWallet, adasheAddress) {
 
     // Get members of the Adashe
     const members = await contract.getMembers();
-    console.log("[getAdasheMembers] Members:", members);
 
-    // Convert array-like Proxy result to a proper array to avoid "out of result range" errors
-    // This ensures we can safely work with the array in the frontend
     const memberArray = [];
     for (let i = 0; i < members.length; i++) {
       // Only add the member if it exists and is a valid address
@@ -509,7 +425,6 @@ export async function getAdasheMembers(embeddedWallet, adasheAddress) {
       }
     }
 
-    console.log("[getAdasheMembers] Processed member array:", memberArray);
     return memberArray;
   } catch (error) {
     console.error("[getAdasheMembers] Failed to get Adashe members:", error);
@@ -534,13 +449,6 @@ export async function getContributionProgress(
       throw new Error("Embedded wallet not found");
     }
 
-    console.log("[getContributionProgress] Starting");
-    console.log(
-      "[getContributionProgress] Using Adashe address:",
-      adasheAddress
-    );
-    console.log("[getContributionProgress] For user:", userAddress);
-
     const provider = await embeddedWallet.getEthereumProvider();
     const ethersProvider = new BrowserProvider(provider);
     const signer = await ethersProvider.getSigner();
@@ -550,7 +458,6 @@ export async function getContributionProgress(
 
     // Get contribution progress
     const progress = await contract.getContributionProgress(userAddress);
-    console.log("[getContributionProgress] Progress:", progress);
 
     return {
       contributedWeeks: progress[0],
@@ -582,9 +489,6 @@ export async function getCurrentWeek(embeddedWallet, adasheAddress) {
       console.warn("[getCurrentWeek] No address provided");
       return 0; // Return 0 as default week if no address
     }
-
-    console.log("[getCurrentWeek] Starting");
-    console.log("[getCurrentWeek] Using Adashe address:", adasheAddress);
 
     // Get provider with timeout protection
     const providerPromise = embeddedWallet.getEthereumProvider();
@@ -620,7 +524,6 @@ export async function getCurrentWeek(embeddedWallet, adasheAddress) {
         "[getCurrentWeek] Failed to check contract code:",
         codeError.message
       );
-      // Continue execution even if code check fails - we'll try to call the contract anyway
     }
 
     // If code check succeeded and contract doesn't exist, return 0
@@ -660,7 +563,6 @@ export async function getCurrentWeek(embeddedWallet, adasheAddress) {
         ),
       ]);
 
-      console.log("[getCurrentWeek] Current week:", currentWeek);
       return Number(currentWeek);
     } catch (contractError) {
       console.error(
@@ -746,8 +648,6 @@ export async function getMemberNames(
       throw new Error("Embedded wallet not found");
     }
 
-    console.log("[getMemberNames] Starting for addresses:", memberAddresses);
-
     const provider = await embeddedWallet.getEthereumProvider();
     const ethersProvider = new BrowserProvider(provider);
     const contract = new Contract(
@@ -779,7 +679,6 @@ export async function getMemberNames(
       }
     }
 
-    console.log("[getMemberNames] Members with names:", membersWithNames);
     return membersWithNames;
   } catch (error) {
     console.error("[getMemberNames] Failed to get member names:", error);
@@ -799,8 +698,6 @@ export async function getAdasheOwner(embeddedWallet, adasheAddress) {
       throw new Error("Embedded wallet not found");
     }
 
-    console.log("[getAdasheOwner] Getting owner for contract:", adasheAddress);
-
     const provider = await embeddedWallet.getEthereumProvider();
     const ethersProvider = new BrowserProvider(provider);
     const contract = new Contract(
@@ -811,7 +708,6 @@ export async function getAdasheOwner(embeddedWallet, adasheAddress) {
 
     // Call the owner function to get the creator's address
     const owner = await contract.owner();
-    console.log("[getAdasheOwner] Owner address:", owner);
 
     return owner;
   } catch (error) {
@@ -836,11 +732,6 @@ export async function getDetailedMembers(
     if (!embeddedWallet) {
       throw new Error("Embedded wallet not found");
     }
-
-    console.log(
-      "[getDetailedMembers] Getting detailed member info for:",
-      adasheAddress
-    );
 
     // Get member addresses
     const memberAddresses = await getAdasheMembers(
@@ -870,7 +761,6 @@ export async function getDetailedMembers(
           : member.name,
     }));
 
-    console.log("[getDetailedMembers] Detailed members:", detailedMembers);
     return detailedMembers;
   } catch (error) {
     console.error(

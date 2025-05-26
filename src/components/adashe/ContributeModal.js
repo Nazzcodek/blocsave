@@ -9,7 +9,7 @@ import { BrowserProvider } from "ethers";
 const ContributeModal = ({ circle, onClose = () => {} }) => {
   const [mounted, setMounted] = useState(false);
   const [isContributing, setIsContributing] = useState(false);
-  const [amount, setAmount] = useState(circle?.weeklyAmount || 0);
+  const [amount] = useState(circle?.weeklyAmount || 0);
   const [transactionHash, setTransactionHash] = useState(null);
   const [transactionStatus, setTransactionStatus] = useState(null); // 'pending', 'confirmed', 'failed'
   const [balanceChecked, setBalanceChecked] = useState(false);
@@ -89,7 +89,7 @@ const ContributeModal = ({ circle, onClose = () => {} }) => {
       setTransactionStatus("pending");
 
       // Poll for transaction receipt
-      const receipt = await ethersProvider.waitForTransaction(txHash, 1); // Wait for 1 confirmation
+      const receipt = await ethersProvider.waitForTransaction(txHash, 1);
 
       if (receipt.status === 1) {
         setTransactionStatus("confirmed");
@@ -187,19 +187,6 @@ const ContributeModal = ({ circle, onClose = () => {} }) => {
         throw new Error("Embedded wallet not found");
       }
 
-      // Show in-progress modal
-      dispatch(
-        openModal({
-          modalType: "INFO_MODAL",
-          modalProps: {
-            title: "Preparing Transaction",
-            message:
-              "Verifying wallet connection and preparing your contribution...",
-            showSpinner: true,
-          },
-        })
-      );
-
       // Check wallet health before proceeding
       const diagnostics = await diagnoseWalletConnection(embeddedWallet);
 
@@ -223,23 +210,6 @@ const ContributeModal = ({ circle, onClose = () => {} }) => {
       // If we have a transaction hash, save it for reference
       if (result?.receipt?.hash) {
         setTransactionHash(result.receipt.hash);
-
-        // Update the modal to show transaction is processing
-        dispatch(
-          openModal({
-            modalType: "INFO_MODAL",
-            modalProps: {
-              title: "Transaction Processing",
-              message: `Your contribution of ${amount} USDC is being processed on the blockchain.`,
-              subMessage: `Transaction Hash: ${result.receipt.hash.slice(
-                0,
-                10
-              )}...${result.receipt.hash.slice(-8)}`,
-              showSpinner: true,
-            },
-          })
-        );
-
         try {
           // Get provider from wallet
           const provider = await embeddedWallet.getEthereumProvider();
@@ -314,13 +284,26 @@ const ContributeModal = ({ circle, onClose = () => {} }) => {
       // Import debug utilities if not already imported
       const { debugError } = await import("../../utils/debug");
       debugError("contributeToCircle", error);
-
-      // Create user-friendly error messages based on error type
-      let errorMessage = error.message || "Unknown error";
+      // Removed console.error for security
+      let errorMessage = "Unknown error";
+      if (typeof error === "string") {
+        errorMessage = error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
       let possibleSolutions = [];
 
+      // Try to extract contract revert reason if available
+      if (error.error && error.error.message) {
+        errorMessage = error.error.message;
+      } else if (error.data && error.data.message) {
+        errorMessage = error.data.message;
+      } else if (error.reason) {
+        errorMessage = error.reason;
+      }
+
       if (errorMessage.includes("execution reverted")) {
-        errorMessage = "The transaction was rejected by the blockchain.";
+        errorMessage = errorMessage.replace("execution reverted: ", "");
         possibleSolutions = [
           "Check that you have enough USDC in your wallet",
           "Verify that you are a member of this circle",
@@ -417,12 +400,8 @@ const ContributeModal = ({ circle, onClose = () => {} }) => {
               type="number"
               id="amount"
               value={amount}
-              onChange={(e) => {
-                const value = Number(e.target.value);
-                // Ensure value is non-negative
-                setAmount(value < 0 ? 0 : value);
-              }}
-              className={`w-full p-3 border rounded-md mb-1 ${
+              readOnly
+              className={`w-full p-3 border rounded-md mb-1 bg-gray-100 cursor-not-allowed ${
                 amount <= 0 ? "border-red-300" : "border-gray-300"
               }`}
               required

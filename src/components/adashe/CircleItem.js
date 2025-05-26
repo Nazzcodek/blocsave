@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
-import { contributeToCircle } from "../../redux/slices/adasheSlice";
+import ContributeModal from "./ContributeModal";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 
 const CircleItem = ({ circle = {}, onViewDetails }) => {
   const dispatch = useDispatch();
   const { user, authenticated } = usePrivy();
   const { wallets } = useWallets();
-  const { isContributing } = useSelector((state) => state.adashe || {});
+  const { contributingCircles } = useSelector((state) => state.adashe || {});
   const [canContribute, setCanContribute] = useState(false);
   const [checkingContribution, setCheckingContribution] = useState(false);
+  const [showContributeModal, setShowContributeModal] = useState(false);
 
   const {
     id = "circle-1",
@@ -23,6 +24,9 @@ const CircleItem = ({ circle = {}, onViewDetails }) => {
     isActive = true,
     error = false,
   } = circle;
+
+  // Check if this specific circle is being contributed to
+  const isContributing = contributingCircles[id] || false;
 
   // Ensure current round is at least 1 (never display as "0 of X")
   const displayCurrentRound = Math.max(1, currentRound);
@@ -43,10 +47,6 @@ const CircleItem = ({ circle = {}, onViewDetails }) => {
 
       try {
         setCheckingContribution(true);
-
-        // Simplified logic: User can contribute if circle has more than 1 member
-        // This removes the complex canContribute check that was showing "already contributed this week"
-        // when the user simply hadn't contributed yet
         setCanContribute(memberCount > 1);
       } catch (error) {
         // Failed to check contribution eligibility
@@ -59,28 +59,12 @@ const CircleItem = ({ circle = {}, onViewDetails }) => {
     checkContributionEligibility();
   }, [authenticated, wallets, id, memberCount, currentRound, error]);
 
-  const handleContribute = async () => {
-    try {
-      // Get the embedded wallet
-      const embeddedWallet = wallets?.find(
-        (wallet) => wallet.walletClientType === "privy"
-      );
+  const handleContribute = () => {
+    setShowContributeModal(true);
+  };
 
-      if (!embeddedWallet) {
-        // No embedded wallet found
-        return;
-      }
-
-      dispatch(
-        contributeToCircle({
-          embeddedWallet,
-          circleId: id,
-          amount: parseFloat(weeklyAmount),
-        })
-      );
-    } catch (error) {
-      // Failed to contribute
-    }
+  const handleCloseContributeModal = () => {
+    setShowContributeModal(false);
   };
 
   const handleViewDetails = () => {
@@ -183,7 +167,7 @@ const CircleItem = ({ circle = {}, onViewDetails }) => {
               title={buttonState.reason}
               className={`flex items-center px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md mr-2 transition-colors ${
                 !buttonState.disabled
-                  ? "bg-[#079669] text-white hover:bg-green-600"
+                  ? "bg-[#079669] text-white hover:bg-[#07966988]"
                   : "bg-gray-200 text-gray-500 cursor-not-allowed"
               }`}
             >
@@ -234,6 +218,10 @@ const CircleItem = ({ circle = {}, onViewDetails }) => {
       </div>
       {error && circle.errorMessage && (
         <p className="mt-2 text-xs text-red-600">{circle.errorMessage}</p>
+      )}
+      {/* Contribute Modal */}
+      {showContributeModal && (
+        <ContributeModal circle={circle} onClose={handleCloseContributeModal} />
       )}
     </div>
   );
