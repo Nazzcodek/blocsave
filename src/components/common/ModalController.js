@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import SuccessModal from "./SuccessModal";
 import ErrorModal from "./ErrorModal";
 import InfoModal from "./InfoModal";
+import ConfirmationModal from "./ConfirmationModal";
 
 // Helper function to format message strings with dynamic values
 const formatMessage = (template, values) => {
@@ -75,6 +76,16 @@ const MODAL_CONFIGS = {
     isInfo: true,
     showSpinner: false,
   },
+  CONFIRMATION_MODAL: {
+    title: "Confirm Action",
+    message: "Are you sure you want to proceed?",
+    isConfirmation: true,
+  },
+  SUCCESS_MODAL: {
+    title: "Success",
+    message: "Operation completed successfully.",
+    isSuccess: true,
+  },
 };
 
 const ModalController = () => {
@@ -136,6 +147,11 @@ const ModalController = () => {
   // Check if this is an info modal
   if (modalConfig.isInfo) {
     return <InfoModal {...modalConfig} />;
+  }
+
+  // Check if this is a confirmation modal
+  if (modalConfig.isConfirmation) {
+    return <ConfirmationModal {...modalConfig} />;
   }
 
   // Default to success modal for all other types

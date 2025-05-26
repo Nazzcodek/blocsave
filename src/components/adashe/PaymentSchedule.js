@@ -1,8 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
-import { withdrawFromCircle } from "../../redux/slices/adasheSlice";
+import {
+  withdrawFromCircle,
+  WITHDRAWAL_STATUS,
+} from "../../redux/slices/adasheSlice";
+import { openModal } from "../../redux/slices/modalSlice";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import Image from "next/image";
+import { getDetailedMembers } from "@/services/blockchain/useAdashe";
 
 const PaymentSchedule = ({ circle }) => {
   const dispatch = useDispatch();
@@ -10,17 +15,235 @@ const PaymentSchedule = ({ circle }) => {
   const { wallets } = useWallets();
   const [processingWithdrawal, setProcessingWithdrawal] = useState(false);
   const [processingRound, setProcessingRound] = useState(null);
+  const [withdrawalStatus, setWithdrawalStatus] = useState(
+    WITHDRAWAL_STATUS.IDLE
+  );
+  const [detailedMembers, setDetailedMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const embeddedWallet = wallets?.find(
+    (wallet) => wallet.walletClientType === "privy"
+  );
+  const userAddress = wallets && wallets[0]?.address?.toLowerCase();
+
+  // Function to get status-specific messages
+  const getWithdrawalStatusMessage = (status) => {
+    switch (status) {
+      case WITHDRAWAL_STATUS.CONNECTING_WALLET:
+        return "Connecting to wallet...";
+      case WITHDRAWAL_STATUS.CHECKING_ELIGIBILITY:
+        return "Verifying eligibility...";
+      case WITHDRAWAL_STATUS.PREPARING_TRANSACTION:
+        return "Preparing transaction...";
+      case WITHDRAWAL_STATUS.AWAITING_APPROVAL:
+        return "Please approve in wallet...";
+      case WITHDRAWAL_STATUS.PROCESSING_BLOCKCHAIN:
+        return "Processing on blockchain...";
+      case WITHDRAWAL_STATUS.CONFIRMING:
+        return "Waiting for confirmation...";
+      case WITHDRAWAL_STATUS.SUCCESS:
+        return "Transaction confirmed!";
+      case WITHDRAWAL_STATUS.ERROR:
+        return "Transaction failed";
+      default:
+        return "Processing...";
+    }
+  };
+
+  // Fetch detailed member information
+  useEffect(() => {
+    const fetchDetailedMembers = async () => {
+      if (!embeddedWallet || !circle?.contractAddress || !circle) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        // Fetching detailed members
+
+        const members = await getDetailedMembers(
+          embeddedWallet,
+          circle.contractAddress,
+          userAddress
+        );
+
+        setDetailedMembers(members);
+      } catch (error) {
+        // Failed to fetch detailed members
+        // Fallback to existing members if available
+        setDetailedMembers(circle.members || []);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDetailedMembers();
+  }, [embeddedWallet, circle?.contractAddress, userAddress, circle]);
 
   if (!circle || !circle.paymentSchedule) return null;
 
+  // Show loading state while fetching detailed members
+  if (loading) {
+    return (
+      <div>
+        <h2 className="text-lg font-semibold mb-2">Payment Schedule</h2>
+        <p className="text-gray-600 text-sm mb-4">
+          The order and schedule of payouts for each member
+        </p>
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <div
+              key={i}
+              className="bg-white rounded-lg p-4 shadow-sm border border-gray-100 animate-pulse"
+            >
+              <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
+              <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
+              <div className="h-2 bg-gray-200 rounded w-full"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Helper function to get recipient display information
+  const getRecipientDisplayInfo = (recipientId) => {
+    if (!recipientId) {
+      return {
+        displayName: "Unknown",
+        isCurrentUser: false,
+        isOwner: false,
+        address: "",
+      };
+    }
+
+    // Find detailed member info by address
+    const detailedMember = detailedMembers.find(
+      (member) => member.address.toLowerCase() === recipientId.toLowerCase()
+    );
+
+    if (detailedMember) {
+      return {
+        displayName: detailedMember.isCurrentUser ? "You" : detailedMember.name,
+        isCurrentUser: detailedMember.isCurrentUser,
+        isOwner: detailedMember.isOwner,
+        address: detailedMember.address,
+      };
+    }
+
+    // Fallback: check if current user by address comparison
+    const isCurrentUser =
+      userAddress && recipientId.toLowerCase() === userAddress;
+
+    if (isCurrentUser) {
+      return {
+        displayName: "You",
+        isCurrentUser: true,
+        isOwner: false, // We don't know ownership without detailed info
+        address: recipientId,
+      };
+    }
+
+    // Fallback: show truncated address
+    return {
+      displayName: `${recipientId.substring(0, 8)}...`,
+      isCurrentUser: false,
+      isOwner: false,
+      address: recipientId,
+    };
+  };
+
   const handleWithdraw = async (roundId) => {
     if (!authenticated) {
-      alert("Please connect your wallet to withdraw");
+      dispatch(
+        openModal({
+          modalType: "ERROR_MODAL",
+          modalProps: {
+            title: "Authentication Required",
+            message: "Please connect your wallet to withdraw funds.",
+          },
+        })
+      );
       return;
     }
 
+    // Additional validation before withdrawal
+    const round = circle.paymentSchedule.find((r) => r.round === roundId);
+    if (!round) {
+      dispatch(
+        openModal({
+          modalType: "ERROR_MODAL",
+          modalProps: {
+            title: "Invalid Round",
+            message: "Invalid round selected. Please try again.",
+          },
+        })
+      );
+      return;
+    }
+
+    if (round.status !== "active") {
+      dispatch(
+        openModal({
+          modalType: "ERROR_MODAL",
+          modalProps: {
+            title: "Round Not Active",
+            message: "This round is not currently active for withdrawal.",
+          },
+        })
+      );
+      return;
+    }
+
+    const recipientInfo = getRecipientDisplayInfo(round.recipient.id);
+    if (!round.recipient || !recipientInfo.isCurrentUser) {
+      dispatch(
+        openModal({
+          modalType: "ERROR_MODAL",
+          modalProps: {
+            title: "Not Eligible",
+            message: "You are not the recipient for this round.",
+          },
+        })
+      );
+      return;
+    }
+
+    // Check if all members have contributed before allowing withdrawal
+    if (round.contributions < circle.memberCount) {
+      dispatch(
+        openModal({
+          modalType: "ERROR_MODAL",
+          modalProps: {
+            title: "Incomplete Round",
+            message: `Cannot withdraw yet. Waiting for all members to contribute. Current: ${round.contributions}/${circle.memberCount} members have contributed.`,
+          },
+        })
+      );
+      return;
+    }
+
+    // Show confirmation dialog before proceeding
+    dispatch(
+      openModal({
+        modalType: "CONFIRMATION_MODAL",
+        modalProps: {
+          title: "Confirm Withdrawal",
+          message: `Are you sure you want to withdraw funds for Round ${roundId}? This action cannot be undone.`,
+          confirmText: "Withdraw",
+          cancelText: "Cancel",
+          onConfirm: () => executeWithdrawal(roundId),
+          variant: "primary",
+        },
+      })
+    );
+  };
+
+  const executeWithdrawal = async (roundId) => {
     setProcessingWithdrawal(true);
     setProcessingRound(roundId);
+    setWithdrawalStatus(WITHDRAWAL_STATUS.CONNECTING_WALLET);
 
     try {
       const embeddedWallet = wallets?.find(
@@ -31,19 +254,75 @@ const PaymentSchedule = ({ circle }) => {
         throw new Error("Embedded wallet not found");
       }
 
+      // Attempting withdrawal for round
+
+      // Create status update callback to track withdrawal progress
+      const updateStatus = (status) => {
+        setWithdrawalStatus(status);
+        // Withdrawal status updated
+      };
+
       await dispatch(
         withdrawFromCircle({
           embeddedWallet,
           circleId: circle.id,
           roundId,
+          updateStatus, // Pass the status update callback
         })
       ).unwrap();
+
+      // Show success message
+      setWithdrawalStatus(WITHDRAWAL_STATUS.SUCCESS);
+      dispatch(
+        openModal({
+          modalType: "SUCCESS_MODAL",
+          modalProps: {
+            title: "Withdrawal Successful",
+            message:
+              "The funds have been transferred to your wallet successfully!",
+            confirmText: "Done",
+          },
+        })
+      );
     } catch (error) {
-      console.error("Failed to withdraw:", error);
-      alert(`Failed to withdraw: ${error.message || "Unknown error"}`);
+      // Provide more specific error messages
+      let errorTitle = "Withdrawal Failed";
+      let errorMessage = "Failed to withdraw funds";
+
+      if (error.message.includes("not your turn")) {
+        errorTitle = "Not Your Turn";
+        errorMessage =
+          "It's not your turn to withdraw yet. Please wait for your scheduled round.";
+      } else if (error.message.includes("already withdrawn")) {
+        errorTitle = "Already Withdrawn";
+        errorMessage = "You have already withdrawn for this round.";
+      } else if (error.message.includes("not a member")) {
+        errorTitle = "Not a Member";
+        errorMessage = "You are not a member of this Adashe circle.";
+      } else if (error.message.includes("insufficient")) {
+        errorTitle = "Insufficient Funds";
+        errorMessage =
+          "The circle does not have sufficient funds for withdrawal.";
+      } else if (error.message.includes("user rejected")) {
+        errorTitle = "Transaction Cancelled";
+        errorMessage = "You cancelled the transaction in your wallet.";
+      } else if (error.message) {
+        errorMessage = `${error.message}`;
+      }
+
+      dispatch(
+        openModal({
+          modalType: "ERROR_MODAL",
+          modalProps: {
+            title: errorTitle,
+            message: errorMessage,
+          },
+        })
+      );
     } finally {
       setProcessingWithdrawal(false);
       setProcessingRound(null);
+      setWithdrawalStatus(WITHDRAWAL_STATUS.IDLE);
     }
   };
 
@@ -107,100 +386,155 @@ const PaymentSchedule = ({ circle }) => {
       </p>
 
       <div className="space-y-4">
-        {circle.paymentSchedule.map((round) => (
-          <div
-            key={round.round}
-            className="bg-white rounded-lg p-4 shadow-sm border border-gray-100"
-          >
-            <div className="flex justify-between items-start mb-2">
-              <div>
-                <div className="flex items-center">
-                  <h3 className="text-[10px] font-medium">
-                    Round {round.round}
-                  </h3>
-                  <div className="text-xs ml-2">
-                    {getStatusBadge(round.status)}
+        {circle.paymentSchedule.map((round) => {
+          const recipientInfo = getRecipientDisplayInfo(round.recipient.id);
+
+          return (
+            <div
+              key={round.round}
+              className="bg-white rounded-lg p-4 shadow-sm border border-gray-100"
+            >
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <div className="flex items-center">
+                    <h3 className="text-[10px] font-medium">
+                      Round {round.round}
+                    </h3>
+                    <div className="text-xs ml-2">
+                      {getStatusBadge(round.status)}
+                    </div>
                   </div>
+                  <p className="text-[10px] text-gray-600">
+                    Recipient:{" "}
+                    <span className="inline-flex items-center">
+                      {recipientInfo.displayName}
+                      {recipientInfo.isOwner && (
+                        <Image
+                          src="/icons/crown.svg"
+                          alt="Crown"
+                          width={10}
+                          height={10}
+                          className="ml-1"
+                        />
+                      )}
+                    </span>
+                  </p>
                 </div>
-                <p className="text-[10px] text-gray-600">
-                  Recipient:{" "}
-                  {round.recipient.id &&
-                  user?.wallet?.address &&
-                  round.recipient.id.toLowerCase() ===
-                    user.wallet.address.toLowerCase()
-                    ? "You"
-                    : `${round.recipient.id.substring(0, 8)}...`}
-                </p>
+
+                {round.status === "active" && recipientInfo.isCurrentUser && (
+                  <button
+                    className={`flex items-center justify-center rounded-md px-2 sm:px-3 py-1 text-xs sm:text-sm transition-all duration-200 ${
+                      processingWithdrawal && processingRound === round.round
+                        ? "bg-gray-400 cursor-not-allowed"
+                        : round.contributions >= circle.memberCount
+                        ? "bg-[#079669] hover:bg-[#067d5a] text-white hover:shadow-md active:scale-95"
+                        : "bg-gray-400 cursor-not-allowed opacity-70"
+                    } disabled:opacity-70`}
+                    disabled={
+                      processingWithdrawal ||
+                      !authenticated ||
+                      round.contributions < circle.memberCount
+                    }
+                    onClick={() => handleWithdraw(round.round)}
+                    title={
+                      processingWithdrawal && processingRound === round.round
+                        ? getWithdrawalStatusMessage(withdrawalStatus)
+                        : !authenticated
+                        ? "Please connect your wallet"
+                        : round.contributions < circle.memberCount
+                        ? `Waiting for all members to contribute (${round.contributions}/${circle.memberCount})`
+                        : `Withdraw funds for Round ${round.round}`
+                    }
+                    aria-label={`Withdraw funds for Round ${round.round}`}
+                  >
+                    {processingWithdrawal && processingRound === round.round ? (
+                      <>
+                        <svg
+                          className="animate-spin h-4 w-4 mr-2 text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        <span>
+                          {getWithdrawalStatusMessage(withdrawalStatus)}
+                        </span>
+                      </>
+                    ) : round.contributions < circle.memberCount ? (
+                      <>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4 mr-2"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        <span>
+                          Waiting ({round.contributions}/{circle.memberCount})
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Image
+                          src="/icons/wallet-white.svg"
+                          alt="Withdraw"
+                          width={16}
+                          height={16}
+                          className="w-4 h-4 mr-2 text-white"
+                        />
+                        <span>Withdraw</span>
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
 
-              {round.status === "active" && round.recipient.name === "You" && (
-                <button
-                  className={`flex items-center justify-center rounded-md px-2 sm:px-3 py-1 text-xs sm:text-sm ${"bg-[#079669] text-white"} disabled:opacity-70`}
-                  disabled={processingWithdrawal || !authenticated}
-                  onClick={() => handleWithdraw(round.round)}
+              <div className="flex items-center text-[10px] text-gray-600 mb-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4 mr-1 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
                 >
-                  {processingWithdrawal && processingRound === round.round ? (
-                    <svg
-                      className="animate-spin h-4 w-4 mr-2 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                  ) : (
-                    <Image
-                      src="/icons/wallet-white.svg"
-                      alt="Withdraw"
-                      width={16}
-                      height={16}
-                      className="w-4 h-4 mr-2 text-white"
-                    />
-                  )}
-                  {processingWithdrawal && processingRound === round.round
-                    ? "Processing..."
-                    : "Withdraw"}
-                </button>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+                {round.date}
+              </div>
+
+              {getProgressBar(
+                round.contributions,
+                circle.memberCount,
+                round.status
               )}
             </div>
-
-            <div className="flex items-center text-[10px] text-gray-600 mb-2">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4 mr-1 text-gray-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-              {round.date}
-            </div>
-
-            {getProgressBar(
-              round.contributions,
-              circle.memberCount,
-              round.status
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

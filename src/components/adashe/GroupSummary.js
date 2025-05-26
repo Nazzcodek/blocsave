@@ -1,7 +1,18 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { contributeToCircle } from "../../redux/slices/adasheSlice";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { getAdasheBalance } from "../../services/blockchain/useAdasheBalance";
 import Image from "next/image";
 
 const GroupSummary = ({ circle }) => {
+  const [canContribute, setCanContribute] = useState(false);
+  const [checkingContribution, setCheckingContribution] = useState(false);
+  const dispatch = useDispatch();
+  const { user, authenticated } = usePrivy();
+  const { wallets } = useWallets();
+  const { isContributing } = useSelector((state) => state.adashe || {});
+
   const safeCircle = circle || {
     paymentSchedule: [],
     weeklyAmount: 0,
@@ -28,6 +39,9 @@ const GroupSummary = ({ circle }) => {
     contractAddress,
   } = safeCircle;
 
+  // Get current user's wallet address
+  const userAddress = wallets && wallets[0]?.address?.toLowerCase();
+
   // Get current recipient information from payment schedule
   const currentRecipient = useMemo(() => {
     if (!paymentSchedule || paymentSchedule.length === 0) return null;
@@ -36,6 +50,67 @@ const GroupSummary = ({ circle }) => {
         ?.recipient || paymentSchedule[0]?.recipient
     );
   }, [paymentSchedule]);
+
+  // Helper function to get recipient display information
+  const getRecipientDisplayInfo = (recipient) => {
+    if (!recipient || !recipient.id) {
+      return {
+        displayName: "Unknown",
+        isCurrentUser: false,
+      };
+    }
+
+    // Check if the recipient ID matches the current user's wallet address
+    const isCurrentUser =
+      userAddress && recipient.id.toLowerCase() === userAddress;
+
+    if (isCurrentUser) {
+      return {
+        displayName: "You",
+        isCurrentUser: true,
+      };
+    }
+
+    // First check if we have a valid name from the recipient object itself
+    if (
+      recipient.name &&
+      recipient.name !== "You" &&
+      !recipient.name.startsWith("Member")
+    ) {
+      return {
+        displayName: recipient.name,
+        isCurrentUser: false,
+      };
+    }
+
+    // Try to find the member in the members array by address
+    if (members && members.length > 0) {
+      const member = members.find(
+        (m) =>
+          m.address && m.address.toLowerCase() === recipient.id.toLowerCase()
+      );
+
+      if (
+        member &&
+        member.name &&
+        member.name !== "You" &&
+        !member.name.startsWith("Member")
+      ) {
+        return {
+          displayName: member.name,
+          isCurrentUser: false,
+        };
+      }
+    }
+
+    // Fallback: show truncated address
+    return {
+      displayName: `${recipient.id.substring(0, 6)}...${recipient.id.substring(
+        recipient.id.length - 4
+      )}`,
+      isCurrentUser: false,
+    };
+  };
 
   // Find the round due date (end of the week) from the payment schedule
   const roundDueDate = useMemo(() => {
@@ -99,6 +174,51 @@ const GroupSummary = ({ circle }) => {
     return `${contractAddress.slice(0, 8)}...${contractAddress.slice(-6)}`;
   }, [contractAddress]);
 
+  // Check if user can contribute when component mounts or circle/wallet changes
+  useEffect(() => {
+    const checkContributionEligibility = async () => {
+      if (!authenticated || !wallets || !circle?.id || circle?.error) {
+        setCanContribute(false);
+        return;
+      }
+
+      // Check if circle has more than 1 member
+      if (memberCount <= 1) {
+        setCanContribute(false);
+        return;
+      }
+
+      try {
+        setCheckingContribution(true);
+
+        const embeddedWallet = wallets?.find(
+          (wallet) => wallet.walletClientType === "privy"
+        );
+
+        if (!embeddedWallet) {
+          setCanContribute(false);
+          return;
+        }
+
+        // Get user's contribution status for this circle
+        const balanceInfo = await getAdasheBalance(
+          embeddedWallet,
+          circle.id || contractAddress
+        );
+
+        // User can contribute if they are a member and haven't contributed for current week
+        setCanContribute(balanceInfo.canContribute || false);
+      } catch (error) {
+        // Failed to check contribution eligibility
+        setCanContribute(false);
+      } finally {
+        setCheckingContribution(false);
+      }
+    };
+
+    checkContributionEligibility();
+  }, [authenticated, wallets, circle, memberCount, contractAddress]);
+
   // Now we can return null safely after all hooks are defined
   if (!circle) return null;
 
@@ -140,10 +260,73 @@ const GroupSummary = ({ circle }) => {
 
       return dateString; // Return as is if parsing fails
     } catch (e) {
-      console.error("Error formatting date:", e);
+      // Error formatting date
       return dateString;
     }
   };
+
+  const handleContribute = async () => {
+    try {
+      // Get the embedded wallet
+      const embeddedWallet = wallets?.find(
+        (wallet) => wallet.walletClientType === "privy"
+      );
+
+      if (!embeddedWallet) {
+        // No embedded wallet found
+        return;
+      }
+
+      dispatch(
+        contributeToCircle({
+          embeddedWallet,
+          circleId: circle.id || contractAddress,
+          amount: parseFloat(weeklyAmount),
+        })
+      );
+    } catch (error) {
+      // Failed to contribute
+    }
+  };
+
+  // Determine button state and messaging
+  const getButtonState = () => {
+    if (circle?.error)
+      return { disabled: true, text: "Error", reason: "Circle has an error" };
+    if (checkingContribution)
+      return {
+        disabled: true,
+        text: "Checking...",
+        reason: "Checking eligibility",
+      };
+    if (!authenticated)
+      return {
+        disabled: true,
+        text: "Contribute",
+        reason: "Please connect your wallet",
+      };
+    if (memberCount <= 1)
+      return {
+        disabled: true,
+        text: "Contribute",
+        reason: "Need more than 1 member",
+      };
+    if (!canContribute)
+      return {
+        disabled: true,
+        text: "Contribute",
+        reason: "Already contributed this week",
+      };
+    if (isContributing)
+      return {
+        disabled: true,
+        text: "Processing...",
+        reason: "Transaction in progress",
+      };
+    return { disabled: false, text: "Contribute", reason: "" };
+  };
+
+  const buttonState = getButtonState();
 
   return (
     <div className="bg-white rounded-lg p-4 shadow-sm mb-4 border border-gray-200">
@@ -226,7 +409,7 @@ const GroupSummary = ({ circle }) => {
             {formatDateConsistently(nextPayoutDate)}
           </p>
           <p className="text-[10px] text-gray-500">
-            To: {currentRecipient?.name || "You"}
+            To: {getRecipientDisplayInfo(currentRecipient).displayName}
           </p>
         </div>
       </div>
@@ -276,15 +459,38 @@ const GroupSummary = ({ circle }) => {
         </div>
       )}
 
-      <button className="w-full bg-[#079669] hover:bg-[#079669] text-white font-medium py-2 rounded-md mt-4 flex items-center justify-center">
-        <Image
-          src="/icons/wallet-white.svg"
-          alt="Contribute"
-          width={20}
-          height={20}
-          className="mr-2"
-        />
-        Contribute
+      <button
+        onClick={handleContribute}
+        disabled={buttonState.disabled}
+        title={buttonState.reason}
+        className={`w-full font-medium py-2 rounded-md mt-4 flex items-center justify-center transition-colors ${
+          !buttonState.disabled
+            ? "bg-[#079669] hover:bg-green-600 text-white"
+            : "bg-gray-200 text-gray-500 cursor-not-allowed"
+        }`}
+      >
+        {checkingContribution ? (
+          <div className="flex items-center">
+            <div className="animate-spin h-4 w-4 border-t-2 border-b-2 border-gray-400 rounded-full mr-2"></div>
+            Checking...
+          </div>
+        ) : isContributing ? (
+          <div className="flex items-center">
+            <div className="animate-spin h-4 w-4 border-t-2 border-b-2 border-white rounded-full mr-2"></div>
+            Processing...
+          </div>
+        ) : (
+          <>
+            <Image
+              src="/icons/wallet-white.svg"
+              alt="Contribute"
+              width={20}
+              height={20}
+              className="mr-2"
+            />
+            {buttonState.text}
+          </>
+        )}
       </button>
     </div>
   );

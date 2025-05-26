@@ -1,14 +1,17 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
 import { contributeToCircle } from "../../redux/slices/adasheSlice";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { getAdasheBalance } from "../../services/blockchain/useAdasheBalance";
 
 const CircleItem = ({ circle = {}, onViewDetails }) => {
   const dispatch = useDispatch();
   const { user, authenticated } = usePrivy();
   const { wallets } = useWallets();
   const { isContributing } = useSelector((state) => state.adashe || {});
+  const [canContribute, setCanContribute] = useState(false);
+  const [checkingContribution, setCheckingContribution] = useState(false);
 
   const {
     id = "circle-1",
@@ -31,6 +34,48 @@ const CircleItem = ({ circle = {}, onViewDetails }) => {
       ? weeklyAmount.toFixed(2)
       : Number(weeklyAmount || 0).toFixed(2);
 
+  // Check if user can contribute when component mounts or circle/wallet changes
+  useEffect(() => {
+    const checkContributionEligibility = async () => {
+      if (!authenticated || !wallets || !id || error) {
+        setCanContribute(false);
+        return;
+      }
+
+      // Check if circle has more than 1 member
+      if (memberCount <= 1) {
+        setCanContribute(false);
+        return;
+      }
+
+      try {
+        setCheckingContribution(true);
+
+        const embeddedWallet = wallets?.find(
+          (wallet) => wallet.walletClientType === "privy"
+        );
+
+        if (!embeddedWallet) {
+          setCanContribute(false);
+          return;
+        }
+
+        // Get user's contribution status for this circle
+        const balanceInfo = await getAdasheBalance(embeddedWallet, id);
+
+        // User can contribute if they are a member and haven't contributed for current week
+        setCanContribute(balanceInfo.canContribute || false);
+      } catch (error) {
+        // Failed to check contribution eligibility
+        setCanContribute(false);
+      } finally {
+        setCheckingContribution(false);
+      }
+    };
+
+    checkContributionEligibility();
+  }, [authenticated, wallets, id, memberCount, currentRound, error]);
+
   const handleContribute = async () => {
     try {
       // Get the embedded wallet
@@ -39,7 +84,7 @@ const CircleItem = ({ circle = {}, onViewDetails }) => {
       );
 
       if (!embeddedWallet) {
-        console.error("No embedded wallet found");
+        // No embedded wallet found
         return;
       }
 
@@ -51,7 +96,7 @@ const CircleItem = ({ circle = {}, onViewDetails }) => {
         })
       );
     } catch (error) {
-      console.error("Failed to contribute:", error);
+      // Failed to contribute
     }
   };
 
@@ -59,8 +104,47 @@ const CircleItem = ({ circle = {}, onViewDetails }) => {
     onViewDetails(id);
   };
 
-  // Determine if the circle has enough members to be considered "ready"
-  const isCircleReady = memberCount >= 1;
+  // Determine if the circle is ready for contributions
+  const isCircleReady = memberCount > 1 && canContribute && !error;
+
+  // Determine button state and messaging
+  const getButtonState = () => {
+    if (error)
+      return { disabled: true, text: "Error", reason: "Circle has an error" };
+    if (checkingContribution)
+      return {
+        disabled: true,
+        text: "Checking...",
+        reason: "Checking eligibility",
+      };
+    if (!authenticated)
+      return {
+        disabled: true,
+        text: "Contribute",
+        reason: "Please connect your wallet",
+      };
+    if (memberCount <= 1)
+      return {
+        disabled: true,
+        text: "Contribute",
+        reason: "Need more than 1 member",
+      };
+    if (!canContribute)
+      return {
+        disabled: true,
+        text: "Contribute",
+        reason: "Already contributed this week",
+      };
+    if (isContributing)
+      return {
+        disabled: true,
+        text: "Processing...",
+        reason: "Transaction in progress",
+      };
+    return { disabled: false, text: "Contribute", reason: "" };
+  };
+
+  const buttonState = getButtonState();
 
   return (
     <div
@@ -112,14 +196,20 @@ const CircleItem = ({ circle = {}, onViewDetails }) => {
           <div className="flex items-center">
             <button
               onClick={handleContribute}
-              disabled={!isCircleReady || isContributing || error}
-              className={`flex items-center px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md mr-2 ${
-                isCircleReady && !isContributing && !error
+              disabled={buttonState.disabled}
+              title={buttonState.reason}
+              className={`flex items-center px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md mr-2 transition-colors ${
+                !buttonState.disabled
                   ? "bg-[#079669] text-white hover:bg-green-600"
                   : "bg-gray-200 text-gray-500 cursor-not-allowed"
               }`}
             >
-              {isContributing ? (
+              {checkingContribution ? (
+                <div className="flex items-center">
+                  <div className="animate-spin h-3 w-3 sm:h-4 sm:w-4 border-t-2 border-b-2 border-gray-400 rounded-full mr-1"></div>
+                  Checking...
+                </div>
+              ) : isContributing ? (
                 <div className="flex items-center">
                   <div className="animate-spin h-3 w-3 sm:h-4 sm:w-4 border-t-2 border-b-2 border-white rounded-full mr-1"></div>
                   Processing...
@@ -133,7 +223,7 @@ const CircleItem = ({ circle = {}, onViewDetails }) => {
                     height={16}
                     className="w-3 h-3 sm:w-4 sm:h-4 mr-1"
                   />
-                  Contribute
+                  {buttonState.text}
                 </>
               )}
             </button>

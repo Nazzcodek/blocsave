@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import {
   createAdasheAddress,
   getAllAdasheAddresses,
+  getActiveAdasheAddresses,
 } from "../../services/blockchain/useAdasheFactory";
 import {
   createAdasheCircle,
@@ -29,7 +30,7 @@ export const fetchAdasheData = createAsyncThunk(
         return rejectWithValue("Wallet not connected");
       }
 
-      // Get all Adashe addresses from factory
+      // Get active Adashe addresses for current user from factory
       let adasheAddresses = await getAllAdasheAddresses(embeddedWallet);
 
       if (!adasheAddresses || adasheAddresses.length === 0) {
@@ -52,9 +53,7 @@ export const fetchAdasheData = createAsyncThunk(
       // Get the addresses for the current page
       const paginatedAddresses = adasheAddresses.slice(startIndex, endIndex);
 
-      console.log(
-        `[fetchAdasheData] Processing ${paginatedAddresses.length} of ${adasheAddresses.length} total circles (page ${page})`
-      );
+      // Processing paginated addresses for current page
 
       // Get balances only for the current page of addresses to improve performance
       const allBalances = await getAllAdasheBalances(
@@ -124,27 +123,46 @@ export const fetchAdasheData = createAsyncThunk(
           const nextPayoutDate = new Date(nextContributionDate);
           nextPayoutDate.setDate(nextPayoutDate.getDate() + 1);
 
-          // Generate payment schedule
+          // Generate payment schedule with correct status logic
           const paymentSchedule = Array.from(
             { length: members.length },
-            (_, i) => ({
-              round: i + 1,
-              recipient: {
-                id: members[i] || `unknown-member-${i}`,
-                name: i === 0 ? "You" : `Member ${i + 1}`,
-              },
-              date: new Date(
-                startDate.getTime() + i * 7 * 24 * 60 * 60 * 1000
-              ).toLocaleDateString("en-GB"),
-              contributions:
-                i < balanceInfo.currentWeek ? balanceInfo.contributedWeeks : 0,
-              status:
-                i < balanceInfo.currentWeek - 1
-                  ? "completed"
-                  : i === balanceInfo.currentWeek - 1
-                  ? "active"
-                  : "pending",
-            })
+            (_, i) => {
+              const roundNumber = i + 1; // 1-based round number
+              const currentWeek = balanceInfo.currentWeek || 1; // Ensure we have a valid current week
+
+              // Determine status based on current week and round progression
+              let status;
+              if (roundNumber < currentWeek) {
+                status = "completed";
+              } else if (roundNumber === currentWeek) {
+                // This is the active round only if enough contributions have been made
+                // Check if all members have contributed for previous weeks
+                const requiredContributions =
+                  members.length * (currentWeek - 1);
+                const totalContributions =
+                  balanceInfo.contributedWeeks * members.length;
+                status =
+                  totalContributions >= requiredContributions
+                    ? "active"
+                    : "pending";
+              } else {
+                status = "pending";
+              }
+
+              return {
+                round: roundNumber,
+                recipient: {
+                  id: members[i] || `unknown-member-${i}`,
+                  name: i === 0 ? "You" : `Member ${i + 1}`,
+                },
+                date: new Date(
+                  startDate.getTime() + i * 7 * 24 * 60 * 60 * 1000
+                ).toLocaleDateString("en-GB"),
+                contributions:
+                  roundNumber <= currentWeek ? balanceInfo.contributedWeeks : 0,
+                status,
+              };
+            }
           );
 
           return {
@@ -177,7 +195,7 @@ export const fetchAdasheData = createAsyncThunk(
             cycleProgress: Math.round(
               ((Number(currentWeek) - 1) / totalWeeks) * 100
             ),
-            invitationCode: `Adashe${address.slice(0, 8)}`,
+            invitationCode: address,
             isActive: true,
             members: formattedMembers,
             paymentSchedule,
@@ -195,9 +213,9 @@ export const fetchAdasheData = createAsyncThunk(
       return {
         balance: totalBalance,
         circles: formattedCircles,
-        totalCount: adasheAddresses.length, // Total number of circles
+        totalCount: adasheAddresses.length, // Total number of active circles for user
         page: page, // Current page
-        hasMore: endIndex < adasheAddresses.length, // Whether there are more circles to load
+        hasMore: endIndex < adasheAddresses.length, // Whether there are more active circles to load
       };
     } catch (error) {
       return rejectWithValue(error.message || "Failed to fetch Adashe data");
@@ -225,10 +243,7 @@ export const contributeToCircle = createAsyncThunk(
           return rejectWithValue("Wallet provider not available");
         }
       } catch (walletError) {
-        console.error(
-          "[contributeToCircle] Error accessing wallet:",
-          walletError
-        );
+        // Error accessing wallet
         return rejectWithValue(
           "Failed to access wallet: " + walletError.message
         );
@@ -243,6 +258,20 @@ export const contributeToCircle = createAsyncThunk(
         return rejectWithValue("Contribution amount must be greater than 0");
       }
 
+      // Validate contribution eligibility
+      const contributionCheck = await getAdasheBalance(
+        embeddedWallet,
+        circleId
+      );
+
+      if (!contributionCheck.isMember) {
+        return rejectWithValue("You are not a member of this circle");
+      }
+
+      if (!contributionCheck.canContribute) {
+        return rejectWithValue("You have already contributed for this week");
+      }
+
       // Get current week if not provided
       if (!weekNumber) {
         weekNumber = await getCurrentWeek(embeddedWallet, circleId);
@@ -254,7 +283,7 @@ export const contributeToCircle = createAsyncThunk(
         weekNumber,
         amount,
         (error) => {
-          console.error("[contributeToCircle] Contribution failed:", error);
+          // Contribution failed
           throw error;
         }
       );
@@ -276,11 +305,30 @@ export const contributeToCircle = createAsyncThunk(
   }
 );
 
-// Withdraw from a specific Adashe circle
+// Withdrawal status constants for enhanced user feedback
+export const WITHDRAWAL_STATUS = {
+  IDLE: "idle",
+  CONNECTING_WALLET: "connecting_wallet",
+  CHECKING_ELIGIBILITY: "checking_eligibility",
+  PREPARING_TRANSACTION: "preparing_transaction",
+  AWAITING_APPROVAL: "awaiting_approval",
+  PROCESSING_BLOCKCHAIN: "processing_blockchain",
+  CONFIRMING: "confirming",
+  SUCCESS: "success",
+  ERROR: "error",
+};
+
+// Withdraw from a specific Adashe circle with enhanced progress tracking
 export const withdrawFromCircle = createAsyncThunk(
   "adashe/withdraw",
-  async ({ embeddedWallet, circleId, roundId }, { rejectWithValue }) => {
+  async (
+    { embeddedWallet, circleId, roundId, updateStatus },
+    { rejectWithValue }
+  ) => {
     try {
+      // Step 1: Wallet Connection
+      updateStatus?.(WITHDRAWAL_STATUS.CONNECTING_WALLET);
+
       if (!embeddedWallet) {
         console.error(
           "[withdrawFromCircle] Embedded wallet is null or undefined"
@@ -292,17 +340,66 @@ export const withdrawFromCircle = createAsyncThunk(
         return rejectWithValue("Invalid circle - please select a valid circle");
       }
 
+      // Connecting to wallet...
+
+      // Verify wallet connection and get provider
+      try {
+        const provider = await embeddedWallet.getEthereumProvider();
+        if (!provider) {
+          throw new Error("Wallet provider not available");
+        }
+      } catch (walletError) {
+        // Wallet connection error
+        return rejectWithValue(
+          "Failed to connect to wallet: " + walletError.message
+        );
+      }
+
+      // Step 2: Checking Eligibility
+      updateStatus?.(WITHDRAWAL_STATUS.CHECKING_ELIGIBILITY);
+      // Verifying withdrawal eligibility...
+
+      // Step 3: Preparing Transaction
+      updateStatus?.(WITHDRAWAL_STATUS.PREPARING_TRANSACTION);
+      // Preparing blockchain transaction...
+
+      // Create enhanced callbacks for the withdrawal process
+      const onWithdrawalSuccess = (receipt) => {
+        updateStatus?.(WITHDRAWAL_STATUS.SUCCESS);
+        // Withdrawal successful
+      };
+
+      const onWithdrawalError = (error) => {
+        updateStatus?.(WITHDRAWAL_STATUS.ERROR);
+        // Withdrawal failed
+        throw error;
+      };
+
+      // Step 4: Execute withdrawal with callbacks for progress tracking
+      updateStatus?.(WITHDRAWAL_STATUS.AWAITING_APPROVAL);
+      // Waiting for wallet approval...
+
       const receipt = await withdrawFromAdashe(
         embeddedWallet,
         circleId,
-        (error) => {
-          console.error("[withdrawFromCircle] Withdrawal failed:", error);
-          throw error;
-        }
+        (txReceipt) => {
+          updateStatus?.(WITHDRAWAL_STATUS.PROCESSING_BLOCKCHAIN);
+          // Transaction submitted, processing on blockchain...
+
+          // Wait for confirmation
+          updateStatus?.(WITHDRAWAL_STATUS.CONFIRMING);
+          // Waiting for blockchain confirmation...
+
+          onWithdrawalSuccess(txReceipt);
+        },
+        onWithdrawalError
       );
 
       // Get updated balance after withdrawal
       const balanceInfo = await getAdasheBalance(embeddedWallet, circleId);
+
+      updateStatus?.(WITHDRAWAL_STATUS.SUCCESS);
+
       return {
         circleId,
         roundId,
@@ -311,7 +408,8 @@ export const withdrawFromCircle = createAsyncThunk(
         success: true,
       };
     } catch (error) {
-      console.error("[withdrawFromCircle] Error:", error);
+      updateStatus?.(WITHDRAWAL_STATUS.ERROR);
+      // Withdrawal error occurred
       return rejectWithValue(error.message || "Failed to withdraw");
     }
   }
@@ -320,11 +418,11 @@ export const withdrawFromCircle = createAsyncThunk(
 // Create new Adashe circle
 export const createCircle = createAsyncThunk(
   "adashe/createCircle",
-  async ({ embeddedWallet, circleData }, { rejectWithValue }) => {
+  async ({ embeddedWallet, circleData, authUser }, { rejectWithValue }) => {
     try {
       // Advanced wallet validation
       if (!embeddedWallet) {
-        console.error("Embedded wallet is null or undefined");
+        // Embedded wallet is null or undefined
         return rejectWithValue("Wallet not connected");
       }
 
@@ -332,11 +430,11 @@ export const createCircle = createAsyncThunk(
       try {
         const provider = await embeddedWallet.getEthereumProvider();
         if (!provider) {
-          console.error("Ethereum provider not available");
+          // Ethereum provider not available
           return rejectWithValue("Wallet provider not available");
         }
       } catch (walletError) {
-        console.error("Error accessing wallet:", walletError);
+        // Error accessing wallet
         return rejectWithValue(
           "Failed to access wallet: " + walletError.message
         );
@@ -366,16 +464,10 @@ export const createCircle = createAsyncThunk(
       const adasheAddress = await createAdasheAddress(
         embeddedWallet,
         (address) => {
-          console.log(
-            "[createCircle] Successfully created Adashe address:",
-            address
-          );
+          // Successfully created Adashe address
         },
         (error) => {
-          console.error(
-            "[createCircle] Failed to create Adashe address:",
-            error
-          );
+          // Failed to create Adashe address
           throw error;
         }
       );
@@ -384,22 +476,32 @@ export const createCircle = createAsyncThunk(
         return rejectWithValue("Failed to create Adashe contract");
       }
 
-      // Get user email or address for creator name
-      let creatorName = "";
-      if (embeddedWallet?.user?.email) {
-        creatorName = embeddedWallet.user.email.split("@")[0];
-      } else if (embeddedWallet?.user?.address) {
-        const addr = embeddedWallet.user.address;
-        creatorName = addr.slice(0, 6) + "..." + addr.slice(-4);
-      } else {
-        creatorName = "Creator";
+      // Step 2: Initializing Adashe circle with parameters
+
+      // Get creator name from authUser (passed from CreateCircle component)
+      let creatorName = "Creator";
+      if (authUser) {
+        // Priority: username > email > wallet address > default
+        if (authUser.username) {
+          creatorName = authUser.username;
+        } else if (authUser.email?.address) {
+          creatorName = authUser.email.address.split("@")[0];
+        } else if (authUser.wallet?.address) {
+          const addr = authUser.wallet.address;
+          creatorName = addr.slice(0, 6) + "..." + addr.slice(-4);
+        }
       }
 
       // Get the creator's wallet address
       let creatorAddress = null;
-      if (embeddedWallet?.user?.address) {
+      if (authUser?.wallet?.address) {
+        creatorAddress = authUser.wallet.address.toLowerCase();
+      } else if (embeddedWallet?.user?.address) {
         creatorAddress = embeddedWallet.user.address.toLowerCase();
       }
+
+      console.log("[createCircle] Using creator name:", creatorName);
+      console.log("[createCircle] Creator address:", creatorAddress);
 
       const receipt = await createAdasheCircle(
         embeddedWallet,
@@ -411,18 +513,22 @@ export const createCircle = createAsyncThunk(
         creatorName, // Use dynamic creator name
         (receipt) => {
           console.log(
-            "[createCircle] Successfully created Adashe circle:",
+            "[createCircle] Step 2 Complete: Successfully initialized Adashe circle:",
             receipt
           );
         },
         (error) => {
           console.error(
-            "[createCircle] Failed to create Adashe circle:",
+            "[createCircle] Step 2 Failed: Failed to initialize Adashe circle:",
             error
           );
           throw error;
         }
       );
+
+      console.log("[createCircle] Both steps completed successfully");
+      console.log("[createCircle] Contract address:", adasheAddress);
+      console.log("[createCircle] Transaction receipt:", receipt.hash);
 
       // Get current week of the circle
       const currentWeek = await getCurrentWeek(embeddedWallet, adasheAddress);
@@ -453,7 +559,7 @@ export const createCircle = createAsyncThunk(
         cycleProgress: Math.round(
           ((Number(currentWeek) - 1) / memberCount) * 100
         ),
-        invitationCode: `${name}${adasheAddress.slice(0, 6)}`,
+        invitationCode: adasheAddress,
         isActive: true,
         creator: creatorAddress, // Store the creator's wallet address for robust identification
         creatorDisplayName: creatorName, // Optionally keep display name for UI
@@ -623,7 +729,7 @@ export const joinCircle = createAsyncThunk(
         receipt: joinResult,
         members,
         currentWeek: Number(currentWeek),
-        memberIndex: members.length - 1, // Assuming the user is the last member added
+        memberIndex: members.length - 1,
         success: true,
       };
     } catch (error) {
@@ -636,15 +742,15 @@ const initialState = {
   balance: 0,
   circles: [],
   isLoading: false,
-  isContributing: false, // Track contribution in progress
+  isContributing: false,
   error: null,
-  activeTab: "create", // Main Adashe page tabs
-  detailTabView: "Schedule", // Circle detail page tabs
-  detailView: false, // Controls whether to show circle details
-  selectedCircleId: null, // ID of the circle being viewed
-  totalCount: 0, // Total number of circles
-  currentPage: 1, // Current page of circles
-  hasMorePages: false, // Whether there are more pages of circles
+  activeTab: "create",
+  detailTabView: "Schedule",
+  detailView: false,
+  selectedCircleId: null,
+  totalCount: 0,
+  currentPage: 1,
+  hasMorePages: false,
 };
 
 const adasheSlice = createSlice({
@@ -782,5 +888,4 @@ export const {
   backFromDetail,
 } = adasheSlice.actions;
 
-// Export reducer only, not the thunks again
 export default adasheSlice.reducer;
