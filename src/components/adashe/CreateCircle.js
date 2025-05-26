@@ -5,6 +5,7 @@ import { openModal, closeModal } from "../../redux/slices/modalSlice";
 import CircleSummary from "./CircleSummary";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { BrowserProvider } from "ethers";
+import Image from "next/image";
 
 const CreateCircleForm = () => {
   const dispatch = useDispatch();
@@ -446,10 +447,12 @@ const CreateCircleForm = () => {
           </div>
         ) : (
           <>
-            <img
+            <Image
               src="/icons/lock_white.svg"
               alt="Create Circle"
               className="w-4 h-4 mr-2"
+              width={16}
+              height={16}
             />
             Create Adashe
           </>

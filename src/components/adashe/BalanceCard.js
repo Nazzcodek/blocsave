@@ -1,5 +1,6 @@
 import React from "react";
 import { useSelector } from "react-redux";
+import Image from "next/image";
 
 const BalanceCard = () => {
   const { balance, circles, isLoading } = useSelector((state) => state.adashe);
@@ -32,13 +33,22 @@ const BalanceCard = () => {
     return total + circlePayout;
   }, 0);
 
+  // Calculate total pool for ALL circles (not just current page)
+  const totalPoolAllCircles = circles.reduce((total, circle) => {
+    const membersCount = circle.memberCount || circle.totalMembers || 0;
+    const weeklyContribution = circle.weeklyAmount || 0;
+    return total + membersCount * weeklyContribution;
+  }, 0);
+
   return (
     <div className="bg-[#D1FAE5] rounded-lg p-6 shadow-sm">
       <div className="flex items-center gap-2 mb-2 pl-2">
         <div className="bg-[#0796691a] rounded-full p-2">
-          <img
+          <Image
             src="/icons/adashe_green.svg"
             alt="Adashe"
+            width={20}
+            height={20}
             className="w-5 h-5 text-[#079669]"
           />
         </div>
@@ -54,11 +64,11 @@ const BalanceCard = () => {
         ) : (
           <>
             <h2 className="text-2xl font-bold">
-              ${(totalExpectedPayout || 0).toFixed(2)}
+              ${totalPoolAllCircles.toFixed(2)}
             </h2>
             <p className="text-sm text-gray-500">
               {activeCircles} Active Circle{activeCircles !== 1 ? "s" : ""} •
-              Expected Payout
+              Total Pool (All Groups)
             </p>
           </>
         )}

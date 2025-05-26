@@ -1,17 +1,20 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { contributeToCircle } from "../../redux/slices/adasheSlice";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
-import { getAdasheBalance } from "../../services/blockchain/useAdasheBalance";
+import ContributeModal from "./ContributeModal";
 import Image from "next/image";
+import { getDetailedMembers } from "@/services/blockchain/useAdashe";
 
 const GroupSummary = ({ circle }) => {
   const [canContribute, setCanContribute] = useState(false);
   const [checkingContribution, setCheckingContribution] = useState(false);
+  const [showContributeModal, setShowContributeModal] = useState(false);
+  const [detailedMembers, setDetailedMembers] = useState([]);
+  const [loadingMembers, setLoadingMembers] = useState(true);
   const dispatch = useDispatch();
   const { user, authenticated } = usePrivy();
   const { wallets } = useWallets();
-  const { isContributing } = useSelector((state) => state.adashe || {});
+  const { contributingCircles } = useSelector((state) => state.adashe || {});
 
   const safeCircle = circle || {
     paymentSchedule: [],
@@ -39,6 +42,10 @@ const GroupSummary = ({ circle }) => {
     contractAddress,
   } = safeCircle;
 
+  // Check if this specific circle is being contributed to
+  const circleId = circle?.id || contractAddress;
+  const isContributing = contributingCircles[circleId] || false;
+
   // Get current user's wallet address
   const userAddress = wallets && wallets[0]?.address?.toLowerCase();
 
@@ -51,176 +58,77 @@ const GroupSummary = ({ circle }) => {
     );
   }, [paymentSchedule]);
 
-  // Helper function to get recipient display information
+  // Fetch detailed member info on mount or when contractAddress changes
+  useEffect(() => {
+    const fetchMembers = async () => {
+      setLoadingMembers(true);
+      try {
+        const embeddedWallet = wallets?.find(
+          (wallet) => wallet.walletClientType === "privy"
+        );
+        if (embeddedWallet && contractAddress) {
+          const members = await getDetailedMembers(
+            embeddedWallet,
+            contractAddress,
+            userAddress
+          );
+          setDetailedMembers(members);
+        } else {
+          setDetailedMembers([]);
+        }
+      } catch (e) {
+        setDetailedMembers([]);
+      } finally {
+        setLoadingMembers(false);
+      }
+    };
+    fetchMembers();
+  }, [wallets, contractAddress, userAddress]);
+
+  // Set canContribute to true if authenticated, group is active, and memberCount > 1
+  useEffect(() => {
+    if (authenticated && isActive && memberCount > 1) {
+      setCanContribute(true);
+    } else {
+      setCanContribute(false);
+    }
+  }, [authenticated, isActive, memberCount]);
+
+  // Helper function to get recipient display information using detailedMembers
   const getRecipientDisplayInfo = (recipient) => {
-    if (!recipient || !recipient.id) {
+    if (!recipient) {
       return {
         displayName: "Unknown",
         isCurrentUser: false,
       };
     }
-
-    // Check if the recipient ID matches the current user's wallet address
-    const isCurrentUser =
-      userAddress && recipient.id.toLowerCase() === userAddress;
-
-    if (isCurrentUser) {
+    const recipientId = recipient.id || recipient.address || recipient;
+    if (!recipientId) {
       return {
-        displayName: "You",
-        isCurrentUser: true,
-      };
-    }
-
-    // First check if we have a valid name from the recipient object itself
-    if (
-      recipient.name &&
-      recipient.name !== "You" &&
-      !recipient.name.startsWith("Member")
-    ) {
-      return {
-        displayName: recipient.name,
+        displayName: "Unknown",
         isCurrentUser: false,
       };
     }
-
-    // Try to find the member in the members array by address
-    if (members && members.length > 0) {
-      const member = members.find(
-        (m) =>
-          m.address && m.address.toLowerCase() === recipient.id.toLowerCase()
-      );
-
-      if (
-        member &&
-        member.name &&
-        member.name !== "You" &&
-        !member.name.startsWith("Member")
-      ) {
-        return {
-          displayName: member.name,
-          isCurrentUser: false,
-        };
+    // Find in detailedMembers
+    const detailed = detailedMembers.find(
+      (m) => m.address?.toLowerCase() === recipientId.toLowerCase()
+    );
+    if (detailed) {
+      if (detailed.isCurrentUser) {
+        return { displayName: "You", isCurrentUser: true };
+      }
+      if (detailed.name) {
+        return { displayName: detailed.name, isCurrentUser: false };
       }
     }
-
     // Fallback: show truncated address
     return {
-      displayName: `${recipient.id.substring(0, 6)}...${recipient.id.substring(
-        recipient.id.length - 4
+      displayName: `${recipientId.substring(0, 6)}...${recipientId.substring(
+        recipientId.length - 4
       )}`,
       isCurrentUser: false,
     };
   };
-
-  // Find the round due date (end of the week) from the payment schedule
-  const roundDueDate = useMemo(() => {
-    if (!paymentSchedule || paymentSchedule.length === 0) return null;
-    const activeRound = paymentSchedule.find(
-      (payment) => payment.status === "active"
-    );
-    return activeRound?.date || paymentSchedule[0]?.date;
-  }, [paymentSchedule]);
-
-  // Format weeklyAmount to prevent "Infinity" display
-  const formattedWeeklyAmount = useMemo(() => {
-    if (
-      typeof weeklyAmount !== "number" ||
-      isNaN(weeklyAmount) ||
-      !isFinite(weeklyAmount)
-    ) {
-      return "0";
-    }
-    return weeklyAmount.toFixed(2);
-  }, [weeklyAmount]);
-
-  // Calculate total pool as weeklyAmount x memberCount (in USDC)
-  const calculatedTotalPool = useMemo(() => {
-    if (
-      typeof weeklyAmount !== "number" ||
-      typeof memberCount !== "number" ||
-      isNaN(weeklyAmount) ||
-      isNaN(memberCount)
-    ) {
-      return "0.00";
-    }
-    return (weeklyAmount * memberCount).toFixed(2);
-  }, [weeklyAmount, memberCount]);
-
-  // Ensure current round is at least 1
-  const displayCurrentRound = Math.max(1, currentRound || 1);
-
-  // Ensure proper group name display
-  const displayName = useMemo(() => {
-    if (name && name.trim().length > 0) {
-      return name;
-    }
-    return contractAddress
-      ? `Adashe Circle ${contractAddress.slice(0, 6)}`
-      : "Adashe Circle";
-  }, [name, contractAddress]);
-
-  // Ensure cycle progress is valid and between 0-100
-  const validCycleProgress = useMemo(() => {
-    if (typeof cycleProgress !== "number" || isNaN(cycleProgress)) {
-      return 0;
-    }
-    // Ensure progress is between 0 and 100
-    return Math.max(0, Math.min(100, cycleProgress));
-  }, [cycleProgress]);
-
-  // Create a truncated contract address display with copy ability
-  const truncatedAddress = useMemo(() => {
-    if (!contractAddress) return "";
-    return `${contractAddress.slice(0, 8)}...${contractAddress.slice(-6)}`;
-  }, [contractAddress]);
-
-  // Check if user can contribute when component mounts or circle/wallet changes
-  useEffect(() => {
-    const checkContributionEligibility = async () => {
-      if (!authenticated || !wallets || !circle?.id || circle?.error) {
-        setCanContribute(false);
-        return;
-      }
-
-      // Check if circle has more than 1 member
-      if (memberCount <= 1) {
-        setCanContribute(false);
-        return;
-      }
-
-      try {
-        setCheckingContribution(true);
-
-        const embeddedWallet = wallets?.find(
-          (wallet) => wallet.walletClientType === "privy"
-        );
-
-        if (!embeddedWallet) {
-          setCanContribute(false);
-          return;
-        }
-
-        // Get user's contribution status for this circle
-        const balanceInfo = await getAdasheBalance(
-          embeddedWallet,
-          circle.id || contractAddress
-        );
-
-        // User can contribute if they are a member and haven't contributed for current week
-        setCanContribute(balanceInfo.canContribute || false);
-      } catch (error) {
-        // Failed to check contribution eligibility
-        setCanContribute(false);
-      } finally {
-        setCheckingContribution(false);
-      }
-    };
-
-    checkContributionEligibility();
-  }, [authenticated, wallets, circle, memberCount, contractAddress]);
-
-  // Now we can return null safely after all hooks are defined
-  if (!circle) return null;
 
   // Helper function to format dates consistently
   const formatDateConsistently = (dateString) => {
@@ -240,7 +148,7 @@ const GroupSummary = ({ circle }) => {
 
         if (match) {
           const day = parseInt(match[1], 10);
-          const month = parseInt(match[2], 10) - 1; // JS months are 0-indexed
+          const month = parseInt(match[2], 10) - 1;
           const year = parseInt(match[3], 10);
 
           const date = new Date(year, month, day);
@@ -265,29 +173,45 @@ const GroupSummary = ({ circle }) => {
     }
   };
 
-  const handleContribute = async () => {
-    try {
-      // Get the embedded wallet
-      const embeddedWallet = wallets?.find(
-        (wallet) => wallet.walletClientType === "privy"
-      );
-
-      if (!embeddedWallet) {
-        // No embedded wallet found
-        return;
-      }
-
-      dispatch(
-        contributeToCircle({
-          embeddedWallet,
-          circleId: circle.id || contractAddress,
-          amount: parseFloat(weeklyAmount),
-        })
-      );
-    } catch (error) {
-      // Failed to contribute
-    }
+  const handleContribute = () => {
+    // Open the ContributeModal instead of direct Redux dispatch
+    setShowContributeModal(true);
   };
+
+  const handleCloseContributeModal = () => {
+    setShowContributeModal(false);
+  };
+
+  // Calculate total pool as weeklyAmount x memberCount (in USDC)
+  const calculatedTotalPool = useMemo(() => {
+    if (
+      typeof weeklyAmount !== "number" ||
+      typeof memberCount !== "number" ||
+      isNaN(weeklyAmount) ||
+      isNaN(memberCount)
+    ) {
+      return "0.00";
+    }
+    return (weeklyAmount * memberCount).toFixed(2);
+  }, [weeklyAmount, memberCount]);
+
+  // Ensure cycle progress is valid and between 0-100
+  const validCycleProgress = useMemo(() => {
+    if (typeof cycleProgress !== "number" || isNaN(cycleProgress)) {
+      return 0;
+    }
+    // Ensure progress is between 0 and 100
+    return Math.max(0, Math.min(100, cycleProgress));
+  }, [cycleProgress]);
+
+  // Find the round due date (end of the week) from the payment schedule
+  const roundDueDate = useMemo(() => {
+    if (!paymentSchedule || paymentSchedule.length === 0) return null;
+    const activeRound = paymentSchedule.find(
+      (payment) => payment.status === "active"
+    );
+    return activeRound?.date || paymentSchedule[0]?.date;
+  }, [paymentSchedule]);
 
   // Determine button state and messaging
   const getButtonState = () => {
@@ -315,7 +239,7 @@ const GroupSummary = ({ circle }) => {
       return {
         disabled: true,
         text: "Contribute",
-        reason: "Already contributed this week",
+        reason: "Need more than 1 member",
       };
     if (isContributing)
       return {
@@ -327,6 +251,40 @@ const GroupSummary = ({ circle }) => {
   };
 
   const buttonState = getButtonState();
+
+  // Ensure proper group name display
+  const displayName = useMemo(() => {
+    if (name && name.trim().length > 0) {
+      return name;
+    }
+    return contractAddress
+      ? `Adashe Circle ${contractAddress.slice(0, 6)}`
+      : "Adashe Circle";
+  }, [name, contractAddress]);
+
+  // Memoized truncated contract address for display
+  const truncatedAddress = useMemo(() => {
+    if (!contractAddress || typeof contractAddress !== "string") return "";
+    return `${contractAddress.slice(0, 6)}...${contractAddress.slice(-4)}`;
+  }, [contractAddress]);
+
+  // Ensure current round is at least 1
+  const displayCurrentRound = Math.max(1, currentRound || 1);
+
+  // Format weeklyAmount to prevent "Infinity" display
+  const formattedWeeklyAmount = useMemo(() => {
+    if (
+      typeof weeklyAmount !== "number" ||
+      isNaN(weeklyAmount) ||
+      !isFinite(weeklyAmount)
+    ) {
+      return "0";
+    }
+    return weeklyAmount.toFixed(2);
+  }, [weeklyAmount]);
+
+  // Now we can return null safely after all hooks are defined
+  if (!circle) return null;
 
   return (
     <div className="bg-white rounded-lg p-4 shadow-sm mb-4 border border-gray-200">
@@ -465,7 +423,7 @@ const GroupSummary = ({ circle }) => {
         title={buttonState.reason}
         className={`w-full font-medium py-2 rounded-md mt-4 flex items-center justify-center transition-colors ${
           !buttonState.disabled
-            ? "bg-[#079669] hover:bg-green-600 text-white"
+            ? "bg-[#079669] hover:[#07966988] text-white"
             : "bg-gray-200 text-gray-500 cursor-not-allowed"
         }`}
       >
@@ -492,6 +450,11 @@ const GroupSummary = ({ circle }) => {
           </>
         )}
       </button>
+
+      {/* Contribute Modal */}
+      {showContributeModal && (
+        <ContributeModal circle={circle} onClose={handleCloseContributeModal} />
+      )}
     </div>
   );
 };

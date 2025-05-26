@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { contributeToCircle } from "../../redux/slices/adasheSlice";
 import ContributeModal from "./ContributeModal";
 import Image from "next/image";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { getDetailedMembers } from "@/services/blockchain/useAdashe";
-import { getAdasheBalance } from "../../services/blockchain/useAdasheBalance";
 
 const InvitationCode = ({ circle }) => {
   // Move all hooks to the top level before any conditional returns
@@ -18,12 +16,16 @@ const InvitationCode = ({ circle }) => {
   const dispatch = useDispatch();
   const { user, authenticated } = usePrivy();
   const { wallets } = useWallets();
-  const { isContributing } = useSelector((state) => state.adashe || {});
+  const { contributingCircles } = useSelector((state) => state.adashe || {});
   const embeddedWallet = wallets?.[0];
   const userAddress = wallets && wallets[0]?.address?.toLowerCase();
 
   // Use the contract address as the invitation code instead of circle name
   const invitationCodeValue = circle?.address || circle?.contractAddress;
+
+  // Get circle-specific contributing state
+  const circleId = circle?.id || invitationCodeValue;
+  const isContributing = contributingCircles[circleId] || false;
 
   useEffect(() => {
     const fetchDetailedMembers = async () => {
@@ -62,42 +64,10 @@ const InvitationCode = ({ circle }) => {
         setCanContribute(false);
         return;
       }
-
-      // Check if circle has more than 1 member
+      // Only check member count, like CircleItem
       const memberCount = detailedMembers.length || circle.memberCount || 0;
-      if (memberCount <= 1) {
-        setCanContribute(false);
-        return;
-      }
-
-      try {
-        setCheckingContribution(true);
-
-        const embeddedWallet = wallets?.find(
-          (wallet) => wallet.walletClientType === "privy"
-        );
-
-        if (!embeddedWallet) {
-          setCanContribute(false);
-          return;
-        }
-
-        // Get user's contribution status for this circle
-        const balanceInfo = await getAdasheBalance(
-          embeddedWallet,
-          circle.id || invitationCodeValue
-        );
-
-        // User can contribute if they are a member and haven't contributed for current week
-        setCanContribute(balanceInfo.canContribute || false);
-      } catch (error) {
-        // Failed to check contribution eligibility
-        setCanContribute(false);
-      } finally {
-        setCheckingContribution(false);
-      }
+      setCanContribute(memberCount > 1);
     };
-
     checkContributionEligibility();
   }, [authenticated, wallets, circle, detailedMembers, invitationCodeValue]);
 
@@ -114,28 +84,9 @@ const InvitationCode = ({ circle }) => {
     }, 2000);
   };
 
-  const handleContribute = async () => {
-    try {
-      // Get the embedded wallet
-      const embeddedWallet = wallets?.find(
-        (wallet) => wallet.walletClientType === "privy"
-      );
-
-      if (!embeddedWallet) {
-        // No embedded wallet found
-        return;
-      }
-
-      dispatch(
-        contributeToCircle({
-          embeddedWallet,
-          circleId: circle.id || invitationCodeValue,
-          amount: parseFloat(circle.weeklyAmount),
-        })
-      );
-    } catch (error) {
-      // Failed to contribute
-    }
+  const handleContribute = () => {
+    // Open the ContributeModal instead of direct Redux dispatch
+    setShowContributeModal(true);
   };
 
   // Determine button state and messaging
@@ -165,7 +116,7 @@ const InvitationCode = ({ circle }) => {
       return {
         disabled: true,
         text: "Contribute to this circle",
-        reason: "Already contributed this week",
+        reason: "Need more than 1 member",
       };
     if (isContributing)
       return {
@@ -173,7 +124,7 @@ const InvitationCode = ({ circle }) => {
         text: "Processing...",
         reason: "Transaction in progress",
       };
-    return { disabled: false, text: "Contribute to this circle", reason: "" };
+    return { disabled: false, text: "Contribute", reason: "" };
   };
 
   const buttonState = getButtonState();
@@ -196,7 +147,7 @@ const InvitationCode = ({ circle }) => {
         title={buttonState.reason}
         className={`w-full text-sm font-medium py-2 px-4 rounded-md mb-4 flex items-center justify-center transition-colors ${
           !buttonState.disabled
-            ? "bg-[#079669] text-white hover:bg-green-600"
+            ? "bg-[#079669] text-white hover:bg-[#07966988]"
             : "bg-gray-200 text-gray-500 cursor-not-allowed"
         }`}
       >
@@ -212,20 +163,13 @@ const InvitationCode = ({ circle }) => {
           </div>
         ) : (
           <>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4 mr-1"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-              />
-            </svg>
+            <Image
+              src={"/icons/wallet-white.svg"}
+              alt="Contribute"
+              width={16}
+              height={16}
+              className="w-4 h-4 mr-2"
+            />
             {buttonState.text}
           </>
         )}

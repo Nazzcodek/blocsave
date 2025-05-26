@@ -113,10 +113,7 @@ export async function getAdasheBalance(embeddedWallet, adasheAddress) {
           ),
         ]);
       } catch (detailsError) {
-        console.error(
-          "[getAdasheBalance] Error fetching member details:",
-          detailsError
-        );
+        // Error fetching member details
       }
     }
 
@@ -158,11 +155,6 @@ export async function getAllAdasheBalances(embeddedWallet, adasheAddresses) {
       return [];
     }
 
-    console.log(
-      "[getAllAdasheBalances] Starting for addresses:",
-      adasheAddresses
-    );
-
     // Get balance info for each adashe contract
     const balancePromises = adasheAddresses.map((address) =>
       getAdasheBalance(embeddedWallet, address)
@@ -171,10 +163,6 @@ export async function getAllAdasheBalances(embeddedWallet, adasheAddresses) {
           ...balanceInfo,
         }))
         .catch((error) => {
-          console.error(
-            `[getAllAdasheBalances] Error for address ${address}:`,
-            error
-          );
           return {
             address,
             contributedWeeks: 0,
@@ -194,10 +182,6 @@ export async function getAllAdasheBalances(embeddedWallet, adasheAddresses) {
 
     return balances;
   } catch (error) {
-    console.error(
-      "[getAllAdasheBalances] Failed to fetch all adashe balances:",
-      error
-    );
     return [];
   }
 }

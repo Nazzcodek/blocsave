@@ -125,17 +125,10 @@ export async function createAdasheAddress(embeddedWallet, onSuccess, onError) {
 
             if (owner.toLowerCase() === walletAddress.toLowerCase()) {
               newAdasheAddress = addr;
-              console.log(
-                "[createAdasheAddress] Found address with matching owner:",
-                newAdasheAddress
-              );
               break;
             }
           } catch (error) {
-            console.warn(
-              `[createAdasheAddress] Error checking owner for ${addr}:`,
-              error
-            );
+            // Ignore errors and try next address
           }
         }
       }
@@ -149,13 +142,8 @@ export async function createAdasheAddress(embeddedWallet, onSuccess, onError) {
     // Success callback if provided
     if (onSuccess) onSuccess(newAdasheAddress);
 
-    console.log("[createAdasheAddress] Returning address:", newAdasheAddress);
     return newAdasheAddress;
   } catch (error) {
-    console.error(
-      "[createAdasheAddress] Error in Adashe creation process:",
-      error
-    );
     if (onError) onError(error);
     throw error;
   }
@@ -172,8 +160,6 @@ export async function getAllAdasheAddresses(embeddedWallet) {
       throw new Error("Embedded wallet not found");
     }
 
-    console.log("[getAllAdasheAddresses] Starting");
-
     const provider = await embeddedWallet.getEthereumProvider();
     const ethersProvider = new BrowserProvider(provider);
     const signer = await ethersProvider.getSigner();
@@ -182,16 +168,9 @@ export async function getAllAdasheAddresses(embeddedWallet) {
     try {
       const code = await ethersProvider.getCode(ADASHE_FACTORY_ADDRESS);
       if (!code || code === "0x") {
-        console.warn(
-          `[getAllAdasheAddresses] No factory contract at address: ${ADASHE_FACTORY_ADDRESS}`
-        );
         return [];
       }
     } catch (codeError) {
-      console.error(
-        "[getAllAdasheAddresses] Error checking contract code:",
-        codeError
-      );
       return [];
     }
 
@@ -202,40 +181,23 @@ export async function getAllAdasheAddresses(embeddedWallet) {
       signer
     );
 
-    console.log("[getAllAdasheAddresses] Getting addresses from factory");
-
     // Use a timeout to prevent hanging
     const adasheAddresses = await Promise.race([
       factoryContract.getAdashes(),
-      new Promise((resolve, reject) =>
+      new Promise((resolve) =>
         setTimeout(() => {
-          console.warn("[getAllAdasheAddresses] Request timed out");
           resolve([]); // Resolve with empty array on timeout rather than rejecting
         }, 15000)
       ),
     ]);
-
-    console.log("[getAllAdasheAddresses] Addresses:", adasheAddresses);
 
     // Filter out any invalid addresses
     const validAddresses = adasheAddresses.filter(
       (addr) => addr && typeof addr === "string" && addr.startsWith("0x")
     );
 
-    if (validAddresses.length < adasheAddresses.length) {
-      console.warn(
-        `[getAllAdasheAddresses] Filtered out ${
-          adasheAddresses.length - validAddresses.length
-        } invalid addresses`
-      );
-    }
-
     return validAddresses;
   } catch (error) {
-    console.error(
-      "[getAllAdasheAddresses] Failed to get Adashe addresses:",
-      error
-    );
     // Return empty array instead of throwing to prevent app crashes
     return [];
   }
@@ -252,8 +214,6 @@ export async function getActiveAdasheAddresses(embeddedWallet) {
       throw new Error("Embedded wallet not found");
     }
 
-    console.log("[getActiveAdasheAddresses] Starting");
-
     const provider = await embeddedWallet.getEthereumProvider();
     const ethersProvider = new BrowserProvider(provider);
     const signer = await ethersProvider.getSigner();
@@ -262,16 +222,9 @@ export async function getActiveAdasheAddresses(embeddedWallet) {
     try {
       const code = await ethersProvider.getCode(ADASHE_FACTORY_ADDRESS);
       if (!code || code === "0x") {
-        console.warn(
-          `[getActiveAdasheAddresses] No factory contract at address: ${ADASHE_FACTORY_ADDRESS}`
-        );
         return [];
       }
     } catch (codeError) {
-      console.error(
-        "[getActiveAdasheAddresses] Error checking contract code:",
-        codeError
-      );
       return [];
     }
 
@@ -282,48 +235,23 @@ export async function getActiveAdasheAddresses(embeddedWallet) {
       signer
     );
 
-    console.log(
-      "[getActiveAdasheAddresses] Getting active circles from factory"
-    );
-
     // Use a timeout to prevent hanging
     const activeCircleAddresses = await Promise.race([
       factoryContract.getActiveCircle(),
-      new Promise((resolve, reject) =>
+      new Promise((resolve) =>
         setTimeout(() => {
-          console.warn("[getActiveAdasheAddresses] Request timed out");
           resolve([]); // Resolve with empty array on timeout rather than rejecting
         }, 15000)
       ),
     ]);
-
-    console.log(
-      "[getActiveAdasheAddresses] Active circle addresses:",
-      activeCircleAddresses
-    );
 
     // Filter out any invalid addresses
     const validAddresses = activeCircleAddresses.filter(
       (addr) => addr && typeof addr === "string" && addr.startsWith("0x")
     );
 
-    if (validAddresses.length < activeCircleAddresses.length) {
-      console.warn(
-        `[getActiveAdasheAddresses] Filtered out ${
-          activeCircleAddresses.length - validAddresses.length
-        } invalid addresses`
-      );
-    }
-
-    console.log(
-      `[getActiveAdasheAddresses] Returning ${validAddresses.length} active circles`
-    );
     return validAddresses;
   } catch (error) {
-    console.error(
-      "[getActiveAdasheAddresses] Failed to get active Adashe addresses:",
-      error
-    );
     // Return empty array instead of throwing to prevent app crashes
     return [];
   }

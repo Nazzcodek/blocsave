@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useSelector } from "react-redux";
 import { getAllAdasheTransactionHistory } from "../../services/blockchain/useAdasheHistory";
+import Image from "next/image";
 
 const TransactionHistory = ({ circleId = null }) => {
   const [transactions, setTransactions] = useState([]);
@@ -12,7 +13,8 @@ const TransactionHistory = ({ circleId = null }) => {
 
   useEffect(() => {
     const fetchTransactionHistory = async () => {
-      if (!embeddedWallet) {
+      // If viewing group history, do NOT require wallet connection
+      if (!circleId && !embeddedWallet) {
         setError("Wallet not connected");
         setIsLoading(false);
         return;
@@ -24,16 +26,16 @@ const TransactionHistory = ({ circleId = null }) => {
 
         let historyData;
         if (circleId) {
-          // If circleId is provided, get history for specific circle
-          const { getAdasheCircleTransactionHistory } = await import(
+          // Use the new on-chain event-based function for group history
+          const { getAdasheGroupTransactionEvents } = await import(
             "../../services/blockchain/useAdasheHistory"
           );
-          historyData = await getAdasheCircleTransactionHistory(
-            embeddedWallet,
+          historyData = await getAdasheGroupTransactionEvents(
+            embeddedWallet, // can be null/undefined for group
             circleId
           );
         } else {
-          // Get all transaction history across all circles
+          // Get all transaction history across all circles (requires wallet)
           historyData = await getAllAdasheTransactionHistory(embeddedWallet);
         }
 
@@ -50,6 +52,36 @@ const TransactionHistory = ({ circleId = null }) => {
     fetchTransactionHistory();
   }, [embeddedWallet, circleId, circles]); // Re-fetch when circles update
 
+  // Memoize transactions with fallback/formatting for on-chain event data
+  const formattedTransactions = useMemo(() => {
+    return transactions.map((tx) => {
+      // Fallbacks for on-chain event data
+      let week = tx.week;
+      if (!week && tx.type === "contribution" && tx.txHash) week = "-";
+      if (!week && tx.type === "payout" && tx.txHash) week = "-";
+      let address = tx.address || tx.user || "-";
+      // Format date
+      let date = tx.date;
+      if (date instanceof Date) {
+        date = date.toLocaleString();
+      } else if (typeof date === "number") {
+        date = new Date(date * 1000).toLocaleString();
+      } else if (typeof date === "string" && !isNaN(Number(date))) {
+        date = new Date(Number(date) * 1000).toLocaleString();
+      }
+      // Format amount
+      let amount = tx.amount;
+      if (typeof amount === "string") amount = Number(amount);
+      return {
+        ...tx,
+        week,
+        address,
+        date,
+        amount,
+      };
+    });
+  }, [transactions]);
+
   return (
     <div>
       <h2 className="text-[16px] font-semibold">Transaction History</h2>
@@ -65,7 +97,8 @@ const TransactionHistory = ({ circleId = null }) => {
         </div>
       )}
 
-      {!embeddedWallet ? (
+      {/* Only show wallet connect message if viewing personal history */}
+      {!circleId && !embeddedWallet ? (
         <div className="text-center py-8">
           <p className="text-gray-500">
             Please connect your wallet to view transaction history
@@ -138,8 +171,8 @@ const TransactionHistory = ({ circleId = null }) => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {transactions.map((transaction) => (
-                <tr key={transaction.id}>
+              {formattedTransactions.map((transaction) => (
+                <tr key={transaction.id || transaction.txHash}>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div
@@ -150,35 +183,39 @@ const TransactionHistory = ({ circleId = null }) => {
                         }`}
                       >
                         {transaction.type === "payout" ? (
-                          <img
+                          <Image
                             src="icons/money-send.svg"
                             alt="payout"
                             className="w-4 h-4"
+                            width={16}
+                            height={16}
                           />
                         ) : (
-                          <img
+                          <Image
                             src="/icons/adashe_green.svg"
                             alt="contribution"
                             className="w-4 h-4"
+                            width={16}
+                            height={16}
                           />
                         )}
                       </div>
                       <span className="text-[10px] font-medium text-gray-900">
-                        {transaction.type === "payout"
-                          ? `Payout W-${transaction.week}`
-                          : "Adashe"}
+                        {transaction.type === "payout" ? `Payout` : "Adashe"}
                       </span>
                     </div>
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <img
+                      <Image
                         src="/icons/user.svg"
                         alt="user"
                         className="w-4 h-4 rounded-full mr-2"
+                        width={16}
+                        height={16}
                       />
                       <span className="text-[10px] text-gray-900">
-                        {transaction.user}
+                        {transaction.user || "-"}
                       </span>
                     </div>
                   </td>
@@ -186,10 +223,10 @@ const TransactionHistory = ({ circleId = null }) => {
                     {transaction.address}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-[10px] text-gray-900">
-                    Week {transaction.week}
+                    {transaction.week || "-"}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-[10px] text-gray-900">
-                    {transaction.date}
+                    {transaction.date || "-"}
                   </td>
                   <td
                     className={`px-4 py-4 whitespace-nowrap text-[10px] font-medium text-right ${

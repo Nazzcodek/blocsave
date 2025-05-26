@@ -42,9 +42,7 @@ const CircleDetail = () => {
           if (embeddedWallet) {
             dispatch(fetchAdasheData({ embeddedWallet }));
           }
-        } catch (error) {
-          console.error("Failed to fetch Adashe data:", error);
-        }
+        } catch (error) {}
       }
     };
 
@@ -70,7 +68,7 @@ const CircleDetail = () => {
           await dispatch(fetchAdasheData({ embeddedWallet }));
         }
       } catch (error) {
-        console.error("Failed to refresh Adashe data:", error);
+        // Removed console.error for security
       } finally {
         setIsRefreshing(false);
       }
