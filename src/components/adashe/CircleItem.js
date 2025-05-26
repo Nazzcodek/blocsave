@@ -3,7 +3,6 @@ import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
 import { contributeToCircle } from "../../redux/slices/adasheSlice";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
-import { getAdasheBalance } from "../../services/blockchain/useAdasheBalance";
 
 const CircleItem = ({ circle = {}, onViewDetails }) => {
   const dispatch = useDispatch();
@@ -42,29 +41,13 @@ const CircleItem = ({ circle = {}, onViewDetails }) => {
         return;
       }
 
-      // Check if circle has more than 1 member
-      if (memberCount <= 1) {
-        setCanContribute(false);
-        return;
-      }
-
       try {
         setCheckingContribution(true);
 
-        const embeddedWallet = wallets?.find(
-          (wallet) => wallet.walletClientType === "privy"
-        );
-
-        if (!embeddedWallet) {
-          setCanContribute(false);
-          return;
-        }
-
-        // Get user's contribution status for this circle
-        const balanceInfo = await getAdasheBalance(embeddedWallet, id);
-
-        // User can contribute if they are a member and haven't contributed for current week
-        setCanContribute(balanceInfo.canContribute || false);
+        // Simplified logic: User can contribute if circle has more than 1 member
+        // This removes the complex canContribute check that was showing "already contributed this week"
+        // when the user simply hadn't contributed yet
+        setCanContribute(memberCount > 1);
       } catch (error) {
         // Failed to check contribution eligibility
         setCanContribute(false);
@@ -133,7 +116,7 @@ const CircleItem = ({ circle = {}, onViewDetails }) => {
       return {
         disabled: true,
         text: "Contribute",
-        reason: "Already contributed this week",
+        reason: "Need more than 1 member",
       };
     if (isContributing)
       return {
