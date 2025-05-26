@@ -30,8 +30,8 @@ export const fetchAdasheData = createAsyncThunk(
         return rejectWithValue("Wallet not connected");
       }
 
-      // Get active Adashe addresses for current user from factory
-      let adasheAddresses = await getAllAdasheAddresses(embeddedWallet);
+      // Get active Adashe addresses for current user from factory using getActiveCircle
+      let adasheAddresses = await getActiveAdasheAddresses(embeddedWallet);
 
       if (!adasheAddresses || adasheAddresses.length === 0) {
         return {
