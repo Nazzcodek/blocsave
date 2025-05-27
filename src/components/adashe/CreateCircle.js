@@ -5,6 +5,7 @@ import { openModal, closeModal } from "../../redux/slices/modalSlice";
 import CircleSummary from "./CircleSummary";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { BrowserProvider } from "ethers";
+import Image from "next/image";
 
 const CreateCircleForm = () => {
   const dispatch = useDispatch();
@@ -172,14 +173,14 @@ const CreateCircleForm = () => {
             result.receipt.hash,
             ethersProvider,
             (receipt) => {
-              console.log("Transaction confirmed with receipt:", receipt);
+              // Transaction confirmed
 
               // Close any pending modals
               dispatch(closeModal());
             }
           );
         } catch (monitorError) {
-          console.error("Error monitoring transaction:", monitorError);
+          // Error monitoring transaction
         }
       }
 
@@ -212,8 +213,6 @@ const CreateCircleForm = () => {
       setCreationStep(0);
       setIsSubmitting(false);
     } catch (error) {
-      console.error("Error creating circle:", error);
-
       // Create a more user-friendly error message
       let errorMessage = error.message || "Unknown error";
       let errorStep = "creating your Adashe circle";
@@ -448,10 +447,12 @@ const CreateCircleForm = () => {
           </div>
         ) : (
           <>
-            <img
+            <Image
               src="/icons/lock_white.svg"
               alt="Create Circle"
               className="w-4 h-4 mr-2"
+              width={16}
+              height={16}
             />
             Create Adashe
           </>

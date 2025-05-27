@@ -30,9 +30,8 @@ export async function getQuickSaveBalance(embeddedWallet) {
       signer
     );
 
-    // Use the userBalance function or any appropriate function from your contract
-    // Based on your QuickSave contract interface
-    const balance = await contract.userBalance(userAddress);
+    // Use the correct function from the contract ABI: balances(address)
+    const balance = await contract.balances(userAddress);
 
     // Convert from wei to USDC (assuming 6 decimals for USDC)
     return Number(formatUnits(balance, 6));
