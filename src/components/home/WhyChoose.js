@@ -85,7 +85,7 @@ const CommunitySavingsCircle = () => {
     >
       {/* Top row - Members */}
       <div className="relative flex justify-center">
-        <div className="flex flex-wrap justify-center gap-4 sm:gap-6 md:gap-8 lg:gap-12">
+        <div className="grid grid-cols-4 gap-2 sm:gap-3 md:gap-4 lg:gap-6 w-full">
           {/* Member A */}
           <div
             className={`flex flex-col items-center transition-all duration-500 hover:scale-105 ${
@@ -94,14 +94,14 @@ const CommunitySavingsCircle = () => {
                 : "opacity-0 translate-y-4"
             }`}
           >
-            <p className="font-medium mb-1 text-sm text-gray-800">Adebayo</p>
+            <p className="font-medium mb-1 text-[10px] sm:text-sm text-gray-800">Adebayo</p>
             <img
               src="/icons/Memoji3.svg"
               alt="Adebayo"
-              className="w-12 h-12 transition-transform duration-300 hover:scale-110"
+              className="w-8 h-8 sm:w-12 sm:h-12 transition-transform duration-300 hover:scale-110"
             />
             <div className="w-[2px] h-2 bg-[#079669]"></div>
-            <span className="bg-purple-100 text-purple-600 px-2 py-1 rounded-full text-xs font-medium mt-0.5">
+            <span className="bg-purple-100 text-purple-600 px-1 sm:px-2 py-0.5 sm:py-1 rounded-full text-[8px] sm:text-xs font-medium mt-0.5">
               100 USDC
             </span>
             <div className="w-[2px] h-4 bg-[#079669]"></div>
@@ -115,14 +115,14 @@ const CommunitySavingsCircle = () => {
                 : "opacity-0 translate-y-4"
             }`}
           >
-            <p className="font-medium mb-1 text-sm text-gray-800">Amara</p>
+            <p className="font-medium mb-1 text-[10px] sm:text-sm text-gray-800">Amara</p>
             <img
               src="/icons/Memoji2.svg"
               alt="Amara"
-              className="w-12 h-12 transition-transform duration-300 hover:scale-110"
+              className="w-8 h-8 sm:w-12 sm:h-12 transition-transform duration-300 hover:scale-110"
             />
             <div className="w-[2px] h-2 bg-[#079669]"></div>
-            <span className="bg-blue-100 text-blue-600 px-1 py-1 rounded-full text-xs font-medium mt-0.5">
+            <span className="bg-blue-100 text-blue-600 px-1 sm:px-2 py-0.5 sm:py-1 rounded-full text-[8px] sm:text-xs font-medium mt-0.5">
               100 USDC
             </span>
             <div className="w-[2px] h-4 bg-[#079669]"></div>
@@ -136,14 +136,14 @@ const CommunitySavingsCircle = () => {
                 : "opacity-0 translate-y-4"
             }`}
           >
-            <p className="font-medium mb-1 text-sm text-gray-800">Kwame</p>
+            <p className="font-medium mb-1 text-[10px] sm:text-sm text-gray-800">Kwame</p>
             <img
               src="/icons/Memoji.svg"
               alt="Kwame"
-              className="w-12 h-12 transition-transform duration-300 hover:scale-110"
+              className="w-8 h-8 sm:w-12 sm:h-12 transition-transform duration-300 hover:scale-110"
             />
             <div className="w-[2px] h-2 bg-[#079669]"></div>
-            <span className="bg-[#0796691a] text-[#079669] px-1 py-1 rounded-full text-xs font-medium mt-0.5">
+            <span className="bg-[#0796691a] text-[#079669] px-1 sm:px-2 py-0.5 sm:py-1 rounded-full text-[8px] sm:text-xs font-medium mt-0.5">
               100 USDC
             </span>
             <div className="w-[2px] h-4 bg-[#079669]"></div>
@@ -157,14 +157,14 @@ const CommunitySavingsCircle = () => {
                 : "opacity-0 translate-y-4"
             }`}
           >
-            <p className="font-medium mb-1 text-sm text-gray-800">Dami</p>
+            <p className="font-medium mb-1 text-[10px] sm:text-sm text-gray-800">Dami</p>
             <img
               src="/icons/Memoji1.svg"
               alt="Dami"
-              className="w-12 h-12 transition-transform duration-300 hover:scale-110"
+              className="w-8 h-8 sm:w-12 sm:h-12 transition-transform duration-300 hover:scale-110"
             />
             <div className="w-[2px] h-2 bg-[#079669]"></div>
-            <span className="bg-yellow-100 text-yellow-600 px-1 py-1 rounded-full text-xs font-medium mt-0.5">
+            <span className="bg-yellow-100 text-yellow-600 px-1 sm:px-2 py-0.5 sm:py-1 rounded-full text-[8px] sm:text-xs font-medium mt-0.5">
               100 USDC
             </span>
             <div className="w-[2px] h-4 bg-[#079669]"></div>
@@ -173,34 +173,34 @@ const CommunitySavingsCircle = () => {
 
         {/* Horizontal line connecting all verticals */}
         <div className="absolute w-full bottom-0 flex justify-center">
-          <div className="w-[calc(100%-2rem)] h-[2px] bg-[#079669]"></div>
+          <div className="w-[calc(100%-0.5rem)] h-[2px] bg-[#079669]"></div>
         </div>
       </div>
 
       {/* Vertical line to pool (touches horizontal and pool box) */}
       <div className="flex justify-center -mt-0.5">
-        <div className="w-[2px] h-6 bg-[#079669]"></div>
+        <div className="w-[2px] h-4 sm:h-6 bg-[#079669]"></div>
       </div>
 
       {/* Weekly Pool Amount */}
       <div className="flex justify-center my-0 relative -mt-0.5">
-        <div className="bg-[#0796691a] rounded-lg py-1 px-4 text-center z-10">
-          <p className="text-sm text-gray-800 font-medium">
+        <div className="bg-[#0796691a] rounded-lg py-1 px-2 sm:px-4 text-center z-10">
+          <p className="text-[10px] sm:text-sm text-gray-800 font-medium">
             WEEKLY POOL AMOUNT
           </p>
-          <p className="text-3xl font-bold text-green-600">500USDC</p>
+          <p className="text-xl sm:text-3xl font-bold text-green-600">500USDC</p>
         </div>
       </div>
 
       {/* Vertical line to recipient (touches pool box and recipient) */}
       <div className="flex justify-center -mt-0.5">
-        <div className="w-[2px] h-6 bg-[#079669]"></div>
+        <div className="w-[2px] h-4 sm:h-6 bg-[#079669]"></div>
       </div>
 
       {/* Recipient of the week */}
       <div className="flex justify-center mb-1 -mt-0.5">
-        <div className="bg-[#0796691a] rounded-lg py-1 px-3 text-center w-64">
-          <p className="text-xs font-medium text-gray-800">
+        <div className="bg-[#0796691a] rounded-lg py-1 px-2 sm:px-3 text-center w-48 sm:w-64">
+          <p className="text-[10px] sm:text-xs font-medium text-gray-800">
             Recipient of Week {currentWeek}
           </p>
           <div
@@ -208,7 +208,7 @@ const CommunitySavingsCircle = () => {
               isAnimating ? "opacity-0" : "opacity-100"
             }`}
           >
-            <p className="font-medium mb-1 text-sm text-gray-800">
+            <p className="font-medium mb-1 text-[10px] sm:text-sm text-gray-800">
               {recipient.name}
             </p>
             <div className="flex justify-center">
@@ -223,10 +223,10 @@ const CommunitySavingsCircle = () => {
                     : "1"
                 }.svg`}
                 alt={recipient.name}
-                className="w-12 h-12"
+                className="w-8 h-8 sm:w-12 sm:h-12"
               />
             </div>
-            <span className="bg-[#0796691a] text-green-600 px-1 py-1 rounded-full text-xs font-medium inline-block mb-2">
+            <span className="bg-[#0796691a] text-green-600 px-1 py-0.5 sm:py-1 rounded-full text-[8px] sm:text-xs font-medium inline-block mb-1 sm:mb-2">
               {recipient.amount}
             </span>
           </div>
@@ -239,26 +239,26 @@ const CommunitySavingsCircle = () => {
 // Smart Savings Flowchart component
 const SmartSavingsFlow = () => {
   return (
-    <div className="bg-[#F6F6F6] rounded-2xl p-6 shadow-sm w-full max-w-4xl mx-auto">
+    <div className="bg-[#F6F6F6] rounded-2xl p-3 sm:p-6 shadow-sm w-full max-w-4xl mx-auto">
       {/* First Row */}
-      <div className="flex justify-center items-start mb-8">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full max-w-2xl relative">
+      <div className="flex justify-center items-start mb-4 sm:mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6 w-full max-w-2xl relative">
           {/* Horizontal connecting lines (desktop only) - behind boxes */}
-          <div className="hidden sm:block h-[2px] bg-[#079669] absolute top-10 left-[16.67%] right-[16.67%] z-0"></div>
+          <div className="hidden sm:block h-[2px] bg-[#079669] absolute top-8 sm:top-10 left-[16.67%] right-[16.67%] z-0"></div>
 
           {/* Step 1 */}
           <div className="flex flex-col items-center relative z-10">
-            <div className="bg-white rounded-lg shadow-sm p-2 text-center w-full mb-4">
-              <div className="flex justify-center mb-3">
+            <div className="bg-white rounded-lg shadow-sm p-2 text-center w-full mb-2 sm:mb-4">
+              <div className="flex justify-center mb-2 sm:mb-3">
                 <div className="text-green-600">
                   <img
                     src="/icons/Bank.svg"
                     alt="Bank"
-                    className="w-8 h-8 mx-auto"
+                    className="w-6 h-6 sm:w-8 sm:h-8 mx-auto"
                   />
                 </div>
               </div>
-              <p className="text-xs font-medium">
+              <p className="text-[10px] sm:text-xs font-medium text-gray-800">
                 User deposits local
                 <br />
                 currency into Blocsave
@@ -266,22 +266,22 @@ const SmartSavingsFlow = () => {
             </div>
 
             {/* Vertical connecting line (mobile only) */}
-            <div className="sm:hidden h-6 w-[2px] bg-[#079669] mx-auto"></div>
+            <div className="sm:hidden h-4 w-[2px] bg-[#079669] mx-auto"></div>
           </div>
 
           {/* Step 2 */}
           <div className="flex flex-col items-center relative z-10">
-            <div className="bg-white rounded-lg shadow-sm p-2 text-center w-full mb-4">
-              <div className="flex justify-center mb-3">
+            <div className="bg-white rounded-lg shadow-sm p-2 text-center w-full mb-2 sm:mb-4">
+              <div className="flex justify-center mb-2 sm:mb-3">
                 <div className="text-green-600">
                   <img
                     src="/icons/swap.svg"
                     alt="Conversion"
-                    className="w-8 h-8 mx-auto"
+                    className="w-6 h-6 sm:w-8 sm:h-8 mx-auto"
                   />
                 </div>
               </div>
-              <p className="text-xs font-medium">
+              <p className="text-[10px] sm:text-xs font-medium text-gray-800">
                 Local currency are
                 <br />
                 converted to USDC
@@ -289,25 +289,25 @@ const SmartSavingsFlow = () => {
             </div>
 
             {/* Vertical connecting line (mobile only) */}
-            <div className="sm:hidden h-6 w-[2px] bg-[#079669] mx-auto"></div>
+            <div className="sm:hidden h-4 w-[2px] bg-[#079669] mx-auto"></div>
           </div>
 
           {/* Step 3 */}
           <div className="flex flex-col items-center relative z-10">
-            <div className="bg-white rounded-lg shadow-sm p-2 text-center w-full mb-4">
-              <div className="flex justify-center mb-3">
+            <div className="bg-white rounded-lg shadow-sm p-2 text-center w-full mb-2 sm:mb-4">
+              <div className="flex justify-center mb-2 sm:mb-3">
                 <div className="relative">
                   <img
                     src="/icons/Memoji.svg"
                     alt="User"
-                    className="w-8 h-8 mx-auto"
+                    className="w-6 h-6 sm:w-8 sm:h-8 mx-auto"
                   />
-                  <span className="absolute -top-1 -right-1 bg-[#0796691a] text-green-600 text-xs px-1 rounded-sm">
+                  <span className="absolute -top-1 -right-1 bg-[#0796691a] text-green-600 text-[8px] sm:text-xs px-1 rounded-sm">
                     100 USDC
                   </span>
                 </div>
               </div>
-              <p className="text-xs font-medium">
+              <p className="text-[10px] sm:text-xs font-medium text-gray-800">
                 User commits 100 USDC
                 <br />
                 from blocsave wallet
@@ -315,30 +315,30 @@ const SmartSavingsFlow = () => {
             </div>
 
             {/* Vertical line to second row - both mobile and desktop */}
-            <div className="h-6 sm:h-12 w-[2px] bg-[#079669] mx-auto"></div>
+            <div className="h-4 sm:h-12 w-[2px] bg-[#079669] mx-auto"></div>
           </div>
         </div>
       </div>
 
       {/* Second Row */}
-      <div className="flex justify-center items-start mb-8">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full max-w-2xl relative">
+      <div className="flex justify-center items-start mb-4 sm:mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6 w-full max-w-2xl relative">
           {/* Horizontal connecting lines (desktop only) - behind boxes */}
-          <div className="hidden sm:block h-[2px] bg-[#079669] absolute top-10 left-[16.67%] right-[16.67%] z-0"></div>
+          <div className="hidden sm:block h-[2px] bg-[#079669] absolute top-8 sm:top-10 left-[16.67%] right-[16.67%] z-0"></div>
 
           {/* Step 6 (desktop) / Step 4 (mobile) */}
           <div className="flex flex-col items-center relative order-3 sm:order-1 z-10">
-            <div className="bg-white rounded-lg shadow-sm p-2 text-center w-full mb-4">
-              <div className="flex justify-center mb-3">
+            <div className="bg-white rounded-lg shadow-sm p-2 text-center w-full mb-2 sm:mb-4">
+              <div className="flex justify-center mb-2 sm:mb-3">
                 <div className="text-green-600">
                   <img
                     src="/icons/unlock.svg"
                     alt="Duration"
-                    className="w-8 h-8 mx-auto"
+                    className="w-6 h-6 sm:w-8 sm:h-8 mx-auto"
                   />
                 </div>
               </div>
-              <p className="text-sm font-medium">
+              <p className="text-[10px] sm:text-sm font-medium text-gray-800">
                 Set lock
                 <br />
                 duration
@@ -349,22 +349,22 @@ const SmartSavingsFlow = () => {
             <div className="hidden sm:block h-12 w-[2px] bg-[#079669] mx-auto"></div>
 
             {/* Vertical connecting line (mobile only) */}
-            <div className="sm:hidden h-6 w-[2px] bg-[#079669] mx-auto"></div>
+            <div className="sm:hidden h-4 w-[2px] bg-[#079669] mx-auto"></div>
           </div>
 
           {/* Step 5 (stays the same for both mobile and desktop) */}
           <div className="flex flex-col items-center relative order-2 z-10">
-            <div className="bg-white rounded-lg shadow-sm p-2 text-center w-full mb-4">
-              <div className="flex justify-center mb-3">
+            <div className="bg-white rounded-lg shadow-sm p-2 text-center w-full mb-2 sm:mb-4">
+              <div className="flex justify-center mb-2 sm:mb-3">
                 <div className="text-green-600">
                   <img
                     src="/icons/group.svg"
                     alt="AI"
-                    className="w-8 h-8 mx-auto"
+                    className="w-6 h-6 sm:w-8 sm:h-8 mx-auto"
                   />
                 </div>
               </div>
-              <p className="text-xs font-medium">
+              <p className="text-[10px] sm:text-xs font-medium text-gray-800">
                 AI Auto-Allocates
                 <br />
                 to Yield Pools
@@ -372,22 +372,22 @@ const SmartSavingsFlow = () => {
             </div>
 
             {/* Vertical connecting line (mobile only) */}
-            <div className="sm:hidden h-6 w-[2px] bg-[#079669] mx-auto"></div>
+            <div className="sm:hidden h-4 w-[2px] bg-[#079669] mx-auto"></div>
           </div>
 
           {/* Step 4 (desktop) / Step 6 (mobile) */}
           <div className="flex flex-col items-center relative order-1 sm:order-3 z-10">
-            <div className="bg-white rounded-lg shadow-sm p-2 text-center w-full mb-4">
-              <div className="flex justify-center mb-3">
+            <div className="bg-white rounded-lg shadow-sm p-2 text-center w-full mb-2 sm:mb-4">
+              <div className="flex justify-center mb-2 sm:mb-3">
                 <div className="text-green-600">
                   <img
                     src="/icons/wallet_green.svg"
                     alt="Lock"
-                    className="w-8 h-8 mx-auto"
+                    className="w-6 h-6 sm:w-8 sm:h-8 mx-auto"
                   />
                 </div>
               </div>
-              <p className="text-sm font-medium">
+              <p className="text-[10px] sm:text-sm font-medium text-gray-800">
                 Lock period
                 <br />
                 completes
@@ -395,30 +395,30 @@ const SmartSavingsFlow = () => {
             </div>
 
             {/* Vertical connecting line (mobile only) - connects to the third row */}
-            <div className="sm:hidden h-6 w-[2px] bg-[#079669] mx-auto"></div>
+            <div className="sm:hidden h-4 w-[2px] bg-[#079669] mx-auto"></div>
           </div>
         </div>
       </div>
 
       {/* Third Row */}
       <div className="flex justify-center items-start">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full max-w-2xl relative">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6 w-full max-w-2xl relative">
           {/* Horizontal connecting line (desktop only) - behind boxes */}
-          <div className="hidden sm:block h-[2px] bg-[#079669] absolute top-10 left-[16.67%] w-[33.33%] z-0"></div>
+          <div className="hidden sm:block h-[2px] bg-[#079669] absolute top-8 sm:top-10 left-[16.67%] w-[33.33%] z-0"></div>
 
           {/* Step 7 */}
           <div className="flex flex-col items-center relative z-10">
-            <div className="bg-white rounded-lg shadow-sm p-2 text-center w-full mb-4">
-              <div className="flex justify-center mb-3">
+            <div className="bg-white rounded-lg shadow-sm p-2 text-center w-full mb-2 sm:mb-4">
+              <div className="flex justify-center mb-2 sm:mb-3">
                 <div className="text-green-600">
                   <img
                     src="/icons/wallet-money.svg"
                     alt="Interest"
-                    className="w-8 h-8 mx-auto"
+                    className="w-6 h-6 sm:w-8 sm:h-8 mx-auto"
                   />
                 </div>
               </div>
-              <p className="text-xs font-medium">
+              <p className="text-[10px] sm:text-xs font-medium text-gray-800">
                 Principal + Interest
                 <br />
                 returned to user wallet
@@ -426,22 +426,22 @@ const SmartSavingsFlow = () => {
             </div>
 
             {/* Vertical connecting line (mobile only) */}
-            <div className="sm:hidden h-6 w-[2px] bg-[#079669] mx-auto"></div>
+            <div className="sm:hidden h-4 w-[2px] bg-[#079669] mx-auto"></div>
           </div>
 
           {/* Step 8 */}
           <div className="flex flex-col items-center relative z-10">
-            <div className="bg-white rounded-lg shadow-sm p-2 text-center w-full mb-4">
-              <div className="flex justify-center mb-3">
+            <div className="bg-white rounded-lg shadow-sm p-2 text-center w-full mb-2 sm:mb-4">
+              <div className="flex justify-center mb-2 sm:mb-3">
                 <div className="text-green-600">
                   <img
                     src="/icons/Bank.svg"
                     alt="Withdraw"
-                    className="w-8 h-8 mx-auto"
+                    className="w-6 h-6 sm:w-8 sm:h-8 mx-auto"
                   />
                 </div>
               </div>
-              <p className="text-xs font-medium">
+              <p className="text-[10px] sm:text-xs font-medium text-gray-800">
                 User Can Withdraw
                 <br />
                 to Local Currency
@@ -461,7 +461,11 @@ const SelectBankCard = () => {
   return (
     <div className="w-[300px] sm:w-[387.64px] h-[225.21px] bg-white/90 backdrop-blur-sm border border-gray-100 rounded-xl shadow-sm p-3 sm:p-4 relative mx-auto">
       <button className="absolute right-3 sm:right-4 top-3 sm:top-4">
-        <img src="/icons/cancel.svg" alt="Close" className="w-3 h-3 sm:w-4 sm:h-4" />
+        <img
+          src="/icons/cancel.svg"
+          alt="Close"
+          className="w-3 h-3 sm:w-4 sm:h-4"
+        />
       </button>
 
       <div className="text-center">
@@ -481,7 +485,11 @@ const SelectBankCard = () => {
 
       <div className="flex items-center justify-end mt-2">
         <button className="flex items-center gap-1 text-[10px] text-[#079669] font-medium">
-          <img src="/icons/add.svg" alt="Add" className="w-3 h-3 sm:w-4 sm:h-4" />
+          <img
+            src="/icons/add.svg"
+            alt="Add"
+            className="w-3 h-3 sm:w-4 sm:h-4"
+          />
           Add your NGN Bank Account
         </button>
       </div>
@@ -497,7 +505,9 @@ const FundWalletCard = () => {
   const [amount, setAmount] = useState(100000);
   const { exchangeRate, isLoading } = useExchangeRate();
   const netAmount = amount;
-  const usdcAmount = exchangeRate ? convertNairaToUSDC(amount, exchangeRate) : 0;
+  const usdcAmount = exchangeRate
+    ? convertNairaToUSDC(amount, exchangeRate)
+    : 0;
 
   const handleAmountChange = (e) => {
     const value = e.target.value.replace(/[^0-9]/g, "");
