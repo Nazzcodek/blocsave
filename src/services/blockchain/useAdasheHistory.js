@@ -284,9 +284,9 @@ export async function getAdasheGroupTransactionEvents(
     if (typeof window !== "undefined" && window.ethereum) {
       ethersProvider = new BrowserProvider(window.ethereum);
     } else {
-      // Use Base Sepolia public RPC endpoint
+      // Use Base Mainnet public RPC endpoint
       const { JsonRpcProvider } = await import("ethers");
-      ethersProvider = new JsonRpcProvider("https://sepolia.base.org");
+      ethersProvider = new JsonRpcProvider(`https://base-mainnet.g.alchemy.com/v2/${NEXT_PUBLIC_BASE_MAINNET_RPC_URL}`);
     }
     if (!adasheAddress) return [];
     const contract = new Contract(

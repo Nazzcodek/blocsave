@@ -2,7 +2,7 @@ import { ethers } from "ethers";
 import quicksave from "../../ABI/QuickSave.json";
 import { BrowserProvider, Contract } from "ethers";
 
-const USDC_CONTRACT = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
+const USDC_CONTRACT = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 
 const QUICK_SAVE_CONTRACT_ABI = quicksave.abi;
 const QUICK_SAVE_CONTRACT_ADDRESS =

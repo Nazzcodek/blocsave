@@ -3,7 +3,7 @@ import adashe from "@/ABI/Adashe.json";
 import { BrowserProvider, Contract } from "ethers";
 import { handleContractError } from "@/utils/contractErrors";
 
-const USDC_CONTRACT = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
+const USDC_CONTRACT = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const ADASHE_CONTRACT_ABI = adashe.abi;
 
 const erc20ABI = [

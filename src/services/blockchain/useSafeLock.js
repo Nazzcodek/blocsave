@@ -3,7 +3,7 @@ import safelock from "@/ABI/SafeLock.json";
 import safelockFactory from "@/ABI/SafeLockFactory.json";
 import { BrowserProvider, Contract } from "ethers";
 
-const USDC_CONTRACT = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
+const USDC_CONTRACT = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const SAFE_LOCK_FACTORY_ADDRESS = "0x4A74cf87164C1c2BCb013b8e0bD0370000715a42";
 
 const SAFE_LOCK_CONTRACT_ABI = safelock.abi;

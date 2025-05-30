@@ -27,7 +27,8 @@ function MyApp({ Component, pageProps }) {
     <PrivyProvider
       appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID}
       config={{
-        defaultChain: baseSepolia,
+        defaultChain: base,
+        supportedChains: [base, baseSepolia],
         embeddedWallets: {
           createOnLogin: "users-without-wallets",
         },
