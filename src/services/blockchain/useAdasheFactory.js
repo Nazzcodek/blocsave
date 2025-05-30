@@ -2,7 +2,7 @@ import { BrowserProvider, Contract } from "ethers";
 import adasheFactory from "@/ABI/AdasheFactory.json";
 
 // The factory contract address as specified in the interface
-const ADASHE_FACTORY_ADDRESS = "0xF7f0cac92371B40bca24Cd34Eb643e0A224e2feC";
+const ADASHE_FACTORY_ADDRESS = "0x064E3d9E73D6641AC06ab8e2EbC8B02dE9205Bb0";
 
 const ADASHE_FACTORY_ABI = adasheFactory.abi;
 

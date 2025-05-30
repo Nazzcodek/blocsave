@@ -3,7 +3,7 @@ import quicksave from "../../ABI/QuickSave.json";
 
 const QUICK_SAVE_CONTRACT_ABI = quicksave.abi;
 const QUICK_SAVE_CONTRACT_ADDRESS =
-  "0x1712ba39632f01d236cd1084f771a679b7cbd846";
+  "0x4aA1fe43615476ff7Ee4913D71806D90419B8eb6";
 
 /**
  * Get the saving history for a user from the QuickSave contract

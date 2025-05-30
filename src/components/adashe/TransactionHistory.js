@@ -15,7 +15,6 @@ const TransactionHistory = ({ circleId = null }) => {
     const fetchTransactionHistory = async () => {
       // If viewing group history, do NOT require wallet connection
       if (!circleId && !embeddedWallet) {
-        setError("Wallet not connected");
         setIsLoading(false);
         return;
       }
@@ -24,9 +23,9 @@ const TransactionHistory = ({ circleId = null }) => {
         setIsLoading(true);
         setError(null);
 
-        let historyData;
+        let historyData = [];
         if (circleId) {
-          // Use the new on-chain event-based function for group history
+          // For a group, fetch all contributions and withdrawals from the contract
           const { getAdasheGroupTransactionEvents } = await import(
             "../../services/blockchain/useAdasheHistory"
           );
@@ -35,7 +34,10 @@ const TransactionHistory = ({ circleId = null }) => {
             circleId
           );
         } else {
-          // Get all transaction history across all circles (requires wallet)
+          // For all user's circles, fetch all transactions (contributions and withdrawals)
+          const { getAllAdasheTransactionHistory } = await import(
+            "../../services/blockchain/useAdasheHistory"
+          );
           historyData = await getAllAdasheTransactionHistory(embeddedWallet);
         }
 
@@ -52,11 +54,21 @@ const TransactionHistory = ({ circleId = null }) => {
     fetchTransactionHistory();
   }, [embeddedWallet, circleId, circles]); // Re-fetch when circles update
 
+  // Harmonize week numbering: blockchain week 0 is user week 1
+  const getUserWeek = (blockchainWeek) => {
+    if (typeof blockchainWeek !== "number" || isNaN(blockchainWeek))
+      return null;
+    return blockchainWeek + 1;
+  };
+
   // Memoize transactions with fallback/formatting for on-chain event data
   const formattedTransactions = useMemo(() => {
     return transactions.map((tx) => {
       // Fallbacks for on-chain event data
       let week = tx.week;
+      if (typeof week === "number" && !isNaN(week)) {
+        week = getUserWeek(week);
+      }
       if (!week && tx.type === "contribution" && tx.txHash) week = "-";
       if (!week && tx.type === "payout" && tx.txHash) week = "-";
       let address = tx.address || tx.user || "-";
@@ -72,12 +84,17 @@ const TransactionHistory = ({ circleId = null }) => {
       // Format amount
       let amount = tx.amount;
       if (typeof amount === "string") amount = Number(amount);
+      // Normalize type for display
+      let displayType = tx.type;
+      if (displayType === "contribution") displayType = "Contribute";
+      if (displayType === "payout" || displayType === "withdrawal" || displayType === "withdraw") displayType = "Withdraw";
       return {
         ...tx,
         week,
         address,
         date,
         amount,
+        displayType,
       };
     });
   }, [transactions]);
@@ -177,15 +194,15 @@ const TransactionHistory = ({ circleId = null }) => {
                     <div className="flex items-center">
                       <div
                         className={`w-6 h-6 rounded-full flex items-center justify-center mr-2 ${
-                          transaction.type === "payout"
+                          transaction.displayType === "Withdraw"
                             ? "bg-green-100"
                             : "bg-green-200"
                         }`}
                       >
-                        {transaction.type === "payout" ? (
+                        {transaction.displayType === "Withdraw" ? (
                           <Image
                             src="icons/money-send.svg"
-                            alt="payout"
+                            alt="withdraw"
                             className="w-4 h-4"
                             width={16}
                             height={16}
@@ -201,7 +218,7 @@ const TransactionHistory = ({ circleId = null }) => {
                         )}
                       </div>
                       <span className="text-[10px] font-medium text-gray-900">
-                        {transaction.type === "payout" ? `Payout` : "Adashe"}
+                        {transaction.displayType}
                       </span>
                     </div>
                   </td>
@@ -235,8 +252,7 @@ const TransactionHistory = ({ circleId = null }) => {
                         : "text-gray-500"
                     }`}
                   >
-                    {transaction.amount > 0 ? "+" : "-"}$
-                    {Math.abs(transaction.amount).toFixed(2)}
+                    {transaction.amount > 0 ? "+" : "-"}${Math.abs(transaction.amount).toFixed(2)}
                   </td>
                 </tr>
               ))}

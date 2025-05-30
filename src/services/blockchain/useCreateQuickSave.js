@@ -6,7 +6,7 @@ const USDC_CONTRACT = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
 
 const QUICK_SAVE_CONTRACT_ABI = quicksave.abi;
 const QUICK_SAVE_CONTRACT_ADDRESS =
-  "0x1712ba39632f01d236cd1084f771a679b7cbd846";
+  "0x4aA1fe43615476ff7Ee4913D71806D90419B8eb6";
 
 const erc20ABI = [
   "function approve(address spender, uint256 amount) external returns (bool)",

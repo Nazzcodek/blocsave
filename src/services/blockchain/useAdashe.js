@@ -770,3 +770,38 @@ export async function getDetailedMembers(
     throw error;
   }
 }
+
+/**
+ * Get the number of members who have contributed for the current week in an Adashe circle
+ * @param {Object} embeddedWallet - User's embedded wallet from Privy
+ * @param {string} adasheAddress - Address of the Adashe contract
+ * @returns {Promise<{contributedCount: number, totalMembers: number, week: number, memberStatuses: Array<{address: string, paid: boolean}>}>}
+ */
+export async function getCircleContributionProgress(
+  embeddedWallet,
+  adasheAddress
+) {
+  if (!embeddedWallet) throw new Error("Embedded wallet not found");
+  const provider = await embeddedWallet.getEthereumProvider();
+  const ethersProvider = new BrowserProvider(provider);
+  const signer = await ethersProvider.getSigner();
+  const contract = new Contract(adasheAddress, ADASHE_CONTRACT_ABI, signer);
+
+  // Get all members
+  const members = await contract.getMembers();
+  // Get current week
+  const currentWeek = await contract.getCurrentWeek();
+  let contributedCount = 0;
+  const memberStatuses = [];
+  for (const address of members) {
+    const contribution = await contract.contributions(address, currentWeek);
+    if (contribution.paid) contributedCount++;
+    memberStatuses.push({ address, paid: contribution.paid });
+  }
+  return {
+    contributedCount,
+    totalMembers: members.length,
+    week: Number(currentWeek),
+    memberStatuses,
+  };
+}
