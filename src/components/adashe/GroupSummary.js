@@ -3,7 +3,10 @@ import { useDispatch, useSelector } from "react-redux";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import ContributeModal from "./ContributeModal";
 import Image from "next/image";
-import { getDetailedMembers } from "@/services/blockchain/useAdashe";
+import {
+  getDetailedMembers,
+  getCircleContributionProgress,
+} from "@/services/blockchain/useAdashe";
 
 const GroupSummary = ({ circle }) => {
   const [canContribute, setCanContribute] = useState(false);
@@ -11,6 +14,11 @@ const GroupSummary = ({ circle }) => {
   const [showContributeModal, setShowContributeModal] = useState(false);
   const [detailedMembers, setDetailedMembers] = useState([]);
   const [loadingMembers, setLoadingMembers] = useState(true);
+  const [circleProgress, setCircleProgress] = useState({
+    contributedCount: 0,
+    totalMembers: 1,
+  });
+  const [progressLoading, setProgressLoading] = useState(true);
   const dispatch = useDispatch();
   const { user, authenticated } = usePrivy();
   const { wallets } = useWallets();
@@ -84,6 +92,38 @@ const GroupSummary = ({ circle }) => {
     };
     fetchMembers();
   }, [wallets, contractAddress, userAddress]);
+
+  // Fetch overall circle contribution progress for the current week
+  useEffect(() => {
+    const fetchProgress = async () => {
+      setProgressLoading(true);
+      try {
+        const embeddedWallet = wallets?.find(
+          (wallet) => wallet.walletClientType === "privy"
+        );
+        if (embeddedWallet && contractAddress) {
+          const progress = await getCircleContributionProgress(
+            embeddedWallet,
+            contractAddress
+          );
+          setCircleProgress(progress);
+        } else {
+          setCircleProgress({
+            contributedCount: 0,
+            totalMembers: memberCount || 1,
+          });
+        }
+      } catch (e) {
+        setCircleProgress({
+          contributedCount: 0,
+          totalMembers: memberCount || 1,
+        });
+      } finally {
+        setProgressLoading(false);
+      }
+    };
+    fetchProgress();
+  }, [wallets, contractAddress, memberCount]);
 
   // Set canContribute to true if authenticated, group is active, and memberCount > 1
   useEffect(() => {
@@ -213,6 +253,29 @@ const GroupSummary = ({ circle }) => {
     return activeRound?.date || paymentSchedule[0]?.date;
   }, [paymentSchedule]);
 
+  // Calculate progress percentage for the progress bar
+  const progressPercent = useMemo(() => {
+    if (!circleProgress.totalMembers) return 0;
+    return Math.round(
+      (circleProgress.contributedCount / circleProgress.totalMembers) * 100
+    );
+  }, [circleProgress]);
+
+  // Harmonize week numbering: blockchain week 0 is user week 1
+  const getUserWeek = (blockchainWeek) => {
+    if (typeof blockchainWeek !== "number" || isNaN(blockchainWeek))
+      return null;
+    return blockchainWeek + 1;
+  };
+
+  // Ensure current round is at least 1 and harmonized with blockchain week
+  const displayCurrentRound = useMemo(() => {
+    if (typeof currentRound === "number" && !isNaN(currentRound)) {
+      return Math.max(1, getUserWeek(currentRound - 1));
+    }
+    return 1;
+  }, [currentRound]);
+
   // Determine button state and messaging
   const getButtonState = () => {
     if (circle?.error)
@@ -267,9 +330,6 @@ const GroupSummary = ({ circle }) => {
     if (!contractAddress || typeof contractAddress !== "string") return "";
     return `${contractAddress.slice(0, 6)}...${contractAddress.slice(-4)}`;
   }, [contractAddress]);
-
-  // Ensure current round is at least 1
-  const displayCurrentRound = Math.max(1, currentRound || 1);
 
   // Format weeklyAmount to prevent "Infinity" display
   const formattedWeeklyAmount = useMemo(() => {
@@ -375,13 +435,15 @@ const GroupSummary = ({ circle }) => {
         <div className="flex justify-between text-sm mb-1">
           <span className="text-xs">Cycle Progress</span>
           <span className="text-xs text-gray-500">
-            {validCycleProgress}% Complete
+            {progressLoading
+              ? "Loading..."
+              : `${circleProgress.contributedCount} of ${circleProgress.totalMembers} contributed (${progressPercent}%)`}
           </span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-1">
           <div
             className="bg-[#079669] h-1 rounded-full"
-            style={{ width: `${validCycleProgress}%` }}
+            style={{ width: `${progressPercent}%` }}
           ></div>
         </div>
       </div>

@@ -7,7 +7,10 @@ import {
 import { openModal } from "../../redux/slices/modalSlice";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import Image from "next/image";
-import { getDetailedMembers } from "@/services/blockchain/useAdashe";
+import {
+  getDetailedMembers,
+  getCircleContributionProgress,
+} from "@/services/blockchain/useAdashe";
 
 const PaymentSchedule = ({ circle }) => {
   const dispatch = useDispatch();
@@ -20,6 +23,8 @@ const PaymentSchedule = ({ circle }) => {
   );
   const [detailedMembers, setDetailedMembers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [contributionProgress, setContributionProgress] = useState(null);
+  const [progressLoading, setProgressLoading] = useState(false);
 
   const embeddedWallet = wallets?.find(
     (wallet) => wallet.walletClientType === "privy"
@@ -80,6 +85,51 @@ const PaymentSchedule = ({ circle }) => {
 
     fetchDetailedMembers();
   }, [embeddedWallet, circle?.contractAddress, userAddress, circle]);
+
+  useEffect(() => {
+    const fetchProgress = async () => {
+      if (!embeddedWallet || !circle?.contractAddress) return;
+      setProgressLoading(true);
+      try {
+        const progress = await getCircleContributionProgress(
+          embeddedWallet,
+          circle.contractAddress
+        );
+        setContributionProgress(progress);
+      } catch (e) {
+        setContributionProgress(null);
+      } finally {
+        setProgressLoading(false);
+      }
+    };
+    fetchProgress();
+  }, [embeddedWallet, circle?.contractAddress]);
+
+  // Harmonize week numbering: blockchain week 0 is user week 1
+  const getUserWeek = (blockchainWeek) => {
+    if (typeof blockchainWeek !== "number" || isNaN(blockchainWeek))
+      return null;
+    return blockchainWeek + 1;
+  };
+
+  // Helper: get the blockchain week for a given round (1-based user round)
+  const getBlockchainWeekForRound = (userRound) => {
+    // userRound is 1-based, blockchain week is 0-based
+    if (typeof userRound !== "number" || isNaN(userRound)) return null;
+    return userRound - 1;
+  };
+
+  // Helper: get the user round for a given blockchain week (0-based)
+  const getUserRoundForBlockchainWeek = (blockchainWeek) => {
+    if (typeof blockchainWeek !== "number" || isNaN(blockchainWeek))
+      return null;
+    return blockchainWeek + 1;
+  };
+
+  // Helper: is the circle started (week >= 0 on blockchain, i.e. user week >= 1)?
+  const isCircleStarted = (blockchainWeek) => {
+    return typeof blockchainWeek === "number" && blockchainWeek >= 0;
+  };
 
   if (!circle || !circle.paymentSchedule) return null;
 
@@ -168,6 +218,24 @@ const PaymentSchedule = ({ circle }) => {
       return;
     }
 
+    // Use real-time progress for active round
+    const currentWeek = contributionProgress?.week;
+    // Remove the check that blocks withdrawal for blockchain week 0 (user week 1)
+    // Only block if week is undefined/null
+    if (currentWeek === undefined || currentWeek === null) {
+      dispatch(
+        openModal({
+          modalType: "ERROR_MODAL",
+          modalProps: {
+            title: "Circle Not Started",
+            message:
+              "The circle has not started yet. Please wait for the first week to begin before attempting withdrawal.",
+          },
+        })
+      );
+      return;
+    }
+
     // Additional validation before withdrawal
     const round = circle.paymentSchedule.find((r) => r.round === roundId);
     if (!round) {
@@ -210,14 +278,44 @@ const PaymentSchedule = ({ circle }) => {
       return;
     }
 
+    // Use real-time contribution count for active round
+    let contributedCount = round.contributions;
+    let totalMembers = round.totalMembers || circle?.memberCount || 1;
+    if (round.status === "active" && contributionProgress) {
+      contributedCount = contributionProgress.contributedCount;
+      totalMembers = contributionProgress.totalMembers;
+    }
+
     // Check if all members have contributed before allowing withdrawal
-    if (round.contributions < circle.memberCount) {
+    if (contributedCount < totalMembers) {
       dispatch(
         openModal({
           modalType: "ERROR_MODAL",
           modalProps: {
             title: "Incomplete Round",
-            message: `Cannot withdraw yet. Waiting for all members to contribute. Current: ${round.contributions}/${circle.memberCount} members have contributed.`,
+            message: `Cannot withdraw yet. Waiting for all members to contribute. Current: ${contributedCount}/${totalMembers} members have contributed.`,
+          },
+        })
+      );
+      return;
+    }
+
+    // Only allow withdrawal if the current blockchain week matches this round
+    // (i.e., it's the recipient's turn for this week)
+    // Fix: compare user round to (blockchain week + 1) instead of blockchain week
+    // But also allow if the round is the current active round (for UI consistency)
+    if (
+      getUserRoundForBlockchainWeek(currentWeek) !== round.round ||
+      getBlockchainWeekForRound(round.round) !== currentWeek
+    ) {
+      dispatch(
+        openModal({
+          modalType: "ERROR_MODAL",
+          modalProps: {
+            title: "Not Your Turn",
+            message: `It's not your turn to withdraw. Current week is ${getUserWeek(
+              currentWeek
+            )}, your turn is week ${round.round}`,
           },
         })
       );
@@ -286,28 +384,30 @@ const PaymentSchedule = ({ circle }) => {
       );
     } catch (error) {
       // Provide more specific error messages
+      console.error("[Withdrawal Error]", error); // <-- log the full error for debugging
       let errorTitle = "Withdrawal Failed";
       let errorMessage = "Failed to withdraw funds";
+      const msg = typeof error?.message === "string" ? error.message : "";
 
-      if (error.message.includes("not your turn")) {
+      if (msg.includes("not your turn")) {
         errorTitle = "Not Your Turn";
         errorMessage =
           "It's not your turn to withdraw yet. Please wait for your scheduled round.";
-      } else if (error.message.includes("already withdrawn")) {
+      } else if (msg.includes("already withdrawn")) {
         errorTitle = "Already Withdrawn";
         errorMessage = "You have already withdrawn for this round.";
-      } else if (error.message.includes("not a member")) {
+      } else if (msg.includes("not a member")) {
         errorTitle = "Not a Member";
         errorMessage = "You are not a member of this Adashe circle.";
-      } else if (error.message.includes("insufficient")) {
+      } else if (msg.includes("insufficient")) {
         errorTitle = "Insufficient Funds";
         errorMessage =
           "The circle does not have sufficient funds for withdrawal.";
-      } else if (error.message.includes("user rejected")) {
+      } else if (msg.includes("user rejected")) {
         errorTitle = "Transaction Cancelled";
         errorMessage = "You cancelled the transaction in your wallet.";
-      } else if (error.message) {
-        errorMessage = `${error.message}`;
+      } else if (msg) {
+        errorMessage = `${msg}`;
       }
 
       dispatch(
@@ -351,31 +451,59 @@ const PaymentSchedule = ({ circle }) => {
     }
   };
 
-  const getProgressBar = (contributions, totalMembers, status) => {
-    const percentage = (contributions / totalMembers) * 100;
-
-    let barColor = "bg-gray-300";
-    if (status === "completed") barColor = "bg-[#079669]";
-    else if (status === "active") barColor = "bg-[#079669]";
-
-    return (
-      <div className="mt-2">
-        <div className="w-full bg-gray-200 rounded-full h-1">
-          <div
-            className={`${barColor} h-1 rounded-full`}
-            style={{ width: `${percentage}%` }}
-          ></div>
+  const getProgressBar = (round) => {
+    if (round.status === "active" && contributionProgress) {
+      const percent = contributionProgress.totalMembers
+        ? Math.round(
+            (contributionProgress.contributedCount /
+              contributionProgress.totalMembers) *
+              100
+          )
+        : 0;
+      return (
+        <div className="mt-2">
+          <div className="w-full bg-gray-200 rounded-full h-1">
+            <div
+              className="bg-[#079669] h-1 rounded-full"
+              style={{ width: `${percent}%` }}
+            ></div>
+          </div>
+          <div className="flex justify-between mt-1">
+            <span className="text-[10px] text-gray-500">
+              {progressLoading
+                ? "Loading..."
+                : `${contributionProgress.contributedCount} of ${contributionProgress.totalMembers} contributed`}
+            </span>
+            <span className="text-xs text-gray-500">
+              {progressLoading ? "" : `${percent}% Complete`}
+            </span>
+          </div>
         </div>
-        <div className="flex justify-between mt-1">
-          <span className="text-[10px] text-gray-500">
-            {contributions} of {totalMembers} contributed
-          </span>
-          <span className="text-xs text-gray-500">
-            {Math.round(percentage)}% Complete
-          </span>
+      );
+    } else {
+      // All other rounds use the existing logic
+      const percent = round.totalMembers
+        ? Math.round((round.contributions / round.totalMembers) * 100)
+        : 0;
+      return (
+        <div className="mt-2">
+          <div className="w-full bg-gray-200 rounded-full h-1">
+            <div
+              className="bg-gray-300 h-1 rounded-full"
+              style={{ width: `${percent}%` }}
+            ></div>
+          </div>
+          <div className="flex justify-between mt-1">
+            <span className="text-[10px] text-gray-500">
+              {`${round.contributions} of ${
+                round.totalMembers || circle?.memberCount || 1
+              } contributed`}
+            </span>
+            <span className="text-xs text-gray-500">{`${percent}% Complete`}</span>
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
   };
 
   return (
@@ -388,6 +516,25 @@ const PaymentSchedule = ({ circle }) => {
       <div className="space-y-4">
         {circle.paymentSchedule.map((round) => {
           const recipientInfo = getRecipientDisplayInfo(round.recipient.id);
+          // Use real-time progress for the active round
+          const isActiveRound =
+            getUserRoundForBlockchainWeek(contributionProgress?.week) ===
+              round.round &&
+            round.status === "active" &&
+            contributionProgress;
+          const contributedCount = isActiveRound
+            ? contributionProgress.contributedCount
+            : round.contributions;
+          const totalMembers = isActiveRound
+            ? contributionProgress.totalMembers
+            : round.totalMembers || circle?.memberCount || 1;
+          const canWithdraw =
+            isActiveRound &&
+            contributedCount >= totalMembers &&
+            recipientInfo.isCurrentUser &&
+            !processingWithdrawal &&
+            authenticated &&
+            isCircleStarted(contributionProgress?.week); // Only disable if week is undefined/null
 
           return (
             <div
@@ -398,7 +545,7 @@ const PaymentSchedule = ({ circle }) => {
                 <div>
                   <div className="flex items-center">
                     <h3 className="text-[10px] font-medium">
-                      Round {round.round}
+                      Round {getUserWeek(round.round - 1)}
                     </h3>
                     <div className="text-xs ml-2">
                       {getStatusBadge(round.status)}
@@ -424,28 +571,29 @@ const PaymentSchedule = ({ circle }) => {
                 {round.status === "active" && recipientInfo.isCurrentUser && (
                   <button
                     className={`flex items-center justify-center rounded-md px-2 sm:px-3 py-1 text-xs sm:text-sm transition-all duration-200 ${
-                      processingWithdrawal && processingRound === round.round
-                        ? "bg-gray-400 cursor-not-allowed"
-                        : round.contributions >= circle.memberCount
+                      canWithdraw
                         ? "bg-[#079669] hover:bg-[#067d5a] text-white hover:shadow-md active:scale-95"
                         : "bg-gray-400 cursor-not-allowed opacity-70"
                     } disabled:opacity-70`}
-                    disabled={
-                      processingWithdrawal ||
-                      !authenticated ||
-                      round.contributions < circle.memberCount
-                    }
+                    disabled={!canWithdraw}
                     onClick={() => handleWithdraw(round.round)}
                     title={
-                      processingWithdrawal && processingRound === round.round
+                      !isCircleStarted(contributionProgress?.week)
+                        ? "Circle has not started yet. Please wait for the first week to begin."
+                        : processingWithdrawal &&
+                          processingRound === round.round
                         ? getWithdrawalStatusMessage(withdrawalStatus)
                         : !authenticated
                         ? "Please connect your wallet"
-                        : round.contributions < circle.memberCount
-                        ? `Waiting for all members to contribute (${round.contributions}/${circle.memberCount})`
-                        : `Withdraw funds for Round ${round.round}`
+                        : contributedCount < totalMembers
+                        ? `Waiting for all members to contribute (${contributedCount}/${totalMembers})`
+                        : `Withdraw funds for Round ${getUserWeek(
+                            round.round - 1
+                          )}`
                     }
-                    aria-label={`Withdraw funds for Round ${round.round}`}
+                    aria-label={`Withdraw funds for Round ${getUserWeek(
+                      round.round - 1
+                    )}`}
                   >
                     {processingWithdrawal && processingRound === round.round ? (
                       <>
@@ -473,7 +621,25 @@ const PaymentSchedule = ({ circle }) => {
                           {getWithdrawalStatusMessage(withdrawalStatus)}
                         </span>
                       </>
-                    ) : round.contributions < circle.memberCount ? (
+                    ) : !isCircleStarted(contributionProgress?.week) ? (
+                      <>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4 mr-2"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        <span>Not Started</span>
+                      </>
+                    ) : contributedCount < totalMembers ? (
                       <>
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -490,7 +656,7 @@ const PaymentSchedule = ({ circle }) => {
                           />
                         </svg>
                         <span>
-                          Waiting ({round.contributions}/{circle.memberCount})
+                          Waiting ({contributedCount}/{totalMembers})
                         </span>
                       </>
                     ) : (
@@ -527,11 +693,7 @@ const PaymentSchedule = ({ circle }) => {
                 {round.date}
               </div>
 
-              {getProgressBar(
-                round.contributions,
-                circle.memberCount,
-                round.status
-              )}
+              {getProgressBar(round)}
             </div>
           );
         })}

@@ -3,7 +3,7 @@ import { formatUnits } from "ethers";
 import safelock from "../../ABI/SafeLock.json";
 
 const SAFE_LOCK_CONTRACT_ABI = safelock.abi;
-const SAFE_LOCK_CONTRACT_ADDRESS = "0x862473108b70afc86861e0cf4101010B95554184";
+const SAFE_LOCK_CONTRACT_ADDRESS = "0x4A74cf87164C1c2BCb013b8e0bD0370000715a42";
 
 /**
  * Fetches the safelock balance for a user from the blockchain

@@ -4,7 +4,7 @@ import safelockFactory from "../../ABI/SafeLockFactory.json";
 
 const SAFE_LOCK_CONTRACT_ABI = safelock.abi;
 const SAFE_LOCK_FACTORY_ABI = safelockFactory.abi;
-const SAFE_LOCK_FACTORY_ADDRESS = "0x862473108b70afc86861e0cf4101010B95554184";
+const SAFE_LOCK_FACTORY_ADDRESS = "0x4A74cf87164C1c2BCb013b8e0bD0370000715a42";
 
 /**
  * Get the saving history for a user from the SafeLock contract
