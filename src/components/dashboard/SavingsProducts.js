@@ -11,7 +11,9 @@ const ProductCard = ({ product, actualBalance }) => {
   const { type, description } = product;
 
   const balance =
-    (type.toLowerCase() === "quicksave" || type.toLowerCase() === "safelock") &&
+    (type.toLowerCase() === "quicksave" ||
+      type.toLowerCase() === "safelock" ||
+      type.toLowerCase() === "adashe") &&
     actualBalance !== null
       ? actualBalance
       : product.balance;
@@ -101,7 +103,10 @@ const ProductCard = ({ product, actualBalance }) => {
             <div className="animate-pulse h-7 bg-gray-200 rounded w-24 mb-2"></div>
           ) : (
             <p className="text-xl sm:text-2xl font-bold mt-2">
-              ${typeof balance === "number" ? balance.toFixed(2) : "0.00"}
+              $
+              {typeof balance === "number" && !isNaN(balance)
+                ? balance.toFixed(2)
+                : "0.00"}
             </p>
           )}
 
@@ -172,6 +177,7 @@ const SavingsProducts = () => {
   }, [embeddedWallet]);
 
   // Add loading and actual balance data to products
+  const dashboard = useSelector((state) => state.dashboard);
   const enhancedProducts = savingsProducts.map((product) => {
     const productType = product.type.toLowerCase();
 
@@ -186,6 +192,13 @@ const SavingsProducts = () => {
       return {
         ...product,
         balanceLoading: isLoadingSafeLock,
+      };
+    }
+
+    if (productType === "adashe") {
+      return {
+        ...product,
+        balanceLoading: dashboard?.isLoading ?? true,
       };
     }
 

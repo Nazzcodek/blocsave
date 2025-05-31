@@ -281,15 +281,6 @@ const CreateCircleForm = () => {
 
   return (
     <form onSubmit={handleCreateCircle} className="space-y-4">
-      {user && (
-        <div className="mb-2 p-3 bg-gray-50 rounded-md">
-          <p className="text-sm text-gray-600">
-            Creating circle as:{" "}
-            <span className="font-medium">{creatorName}</span>
-          </p>
-        </div>
-      )}
-
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Circle Name
@@ -300,7 +291,6 @@ const CreateCircleForm = () => {
           className="w-full p-3 border border-gray-300 rounded-md"
           value={circleName}
           onChange={(e) => {
-            // Remove any characters that might cause issues with the smart contract
             const sanitized = e.target.value.replace(/[^\w\s]/gi, "");
             setCircleName(sanitized);
           }}
