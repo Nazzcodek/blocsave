@@ -6,11 +6,11 @@ import { getAllAdasheAddresses } from "./useAdasheFactory";
 const ADASHE_CONTRACT_ABI = adashe.abi;
 
 /**
- * Get contribution history for a user from a specific Adashe contract
+ * Get contribution and withdrawal history for a user from a specific Adashe contract using transactions(address, uint256)
  *
  * @param {object} embeddedWallet - Privy embedded wallet object
  * @param {string} adasheAddress - Address of the Adashe contract
- * @returns {Promise<Array>} - Array of contribution transactions
+ * @returns {Promise<Array>} - Array of contribution and withdrawal transactions
  */
 export async function getAdasheContributionHistory(
   embeddedWallet,
@@ -25,68 +25,46 @@ export async function getAdasheContributionHistory(
     const ethersProvider = new BrowserProvider(provider);
     const signer = await ethersProvider.getSigner();
     const userAddress = await signer.getAddress();
-
-    // Removed all console.log, console.warn, and console.error statements for security
-
-    // Check if contract exists
-    const code = await ethersProvider.getCode(adasheAddress);
-    if (!code || code === "0x") {
-      return [];
-    }
-
     const contract = new Contract(adasheAddress, ADASHE_CONTRACT_ABI, signer);
 
-    // Get contribution events - we'll use the contribution progress to simulate history
-    // In a real implementation, you'd query blockchain events
-    try {
-      const progress = await contract.getContributionProgress(userAddress);
-      const contributedWeeks = Number(progress[0]);
-      const totalContribution = Number(formatUnits(progress[1], 6));
-
-      // Get circle details for context
-      let circleName = `Adashe ${adasheAddress.slice(0, 6)}`;
-      let weeklyAmount = 0;
-
+    // Use transactions(address, uint256) to fetch all user transactions
+    let transactions = [];
+    let week = 1;
+    let hasMore = true;
+    while (hasMore) {
+      let tx;
       try {
-        const adasheDetails = await contract.adashe();
-        circleName = adasheDetails.circleName || circleName;
-        weeklyAmount = Number(formatUnits(adasheDetails.weeklyContribution, 6));
-      } catch (detailsError) {
-        // Calculate weekly amount from total if we have contributions
-        weeklyAmount =
-          contributedWeeks > 0 ? totalContribution / contributedWeeks : 0;
+        tx = await contract.transactions(userAddress, week);
+      } catch (e) {
+        hasMore = false;
+        break;
       }
-
-      // Generate contribution history based on contributed weeks
-      const contributions = [];
-      for (let week = 1; week <= contributedWeeks; week++) {
-        // Simulate dates (in real implementation, you'd get from events)
-        const contributionDate = new Date();
-        contributionDate.setDate(
-          contributionDate.getDate() - (contributedWeeks - week) * 7
-        );
-
-        contributions.push({
-          id: `contribution-${adasheAddress.slice(0, 8)}-${week}`,
-          type: "contribution",
-          from: "Wallet",
-          to: circleName,
-          amount: weeklyAmount,
-          date: contributionDate,
+      if (tx && tx.amount && tx.amount > 0) {
+        transactions.push({
+          id: `tx-${adasheAddress.slice(0, 8)}-${week}`,
+          type: tx.txType === 0 ? "contribution" : "withdrawal",
+          from:
+            tx.txType === 0 ? "Wallet" : `Adashe ${adasheAddress.slice(0, 6)}`,
+          to:
+            tx.txType === 0 ? `Adashe ${adasheAddress.slice(0, 6)}` : "Wallet",
+          amount: Number(tx.amount) / 1e6, // Assuming USDC 6 decimals
+          date: tx.timestamp
+            ? new Date(Number(tx.timestamp) * 1000)
+            : undefined,
           week: `Week ${week}`,
           user: "You",
           address: `${userAddress.slice(0, 10)}...${userAddress.slice(-8)}`,
           contractAddress: adasheAddress,
           transactionId: `${adasheAddress.slice(0, 10)}...${adasheAddress.slice(
             -8
-          )}-W${week}`,
+          )}-T${week}`,
         });
+        week++;
+      } else {
+        hasMore = false;
       }
-
-      return contributions;
-    } catch (progressError) {
-      return [];
     }
+    return transactions;
   } catch (error) {
     return [];
   }
@@ -343,6 +321,117 @@ export async function getAdasheGroupTransactionEvents(
     // Combine and sort by date (newest first)
     const all = [...deposits, ...payouts].sort((a, b) => b.date - a.date);
     return all;
+  } catch (error) {
+    return [];
+  }
+}
+
+/**
+ * Get all group transaction history (contributions and withdrawals) for all users in a group
+ * @param {object} embeddedWallet - Privy embedded wallet object
+ * @param {string} adasheAddress - Address of the Adashe contract
+ * @returns {Promise<Array>} - Array of all group transactions
+ */
+export async function getAdasheGroupTransactionHistory(
+  embeddedWallet,
+  adasheAddress
+) {
+  try {
+    if (!embeddedWallet || !adasheAddress) {
+      return [];
+    }
+    const provider = await embeddedWallet.getEthereumProvider();
+    const ethersProvider = new BrowserProvider(provider);
+    const signer = await ethersProvider.getSigner();
+    const contract = new Contract(adasheAddress, ADASHE_CONTRACT_ABI, signer);
+    // Get all members
+    const members = await contract.getMembers();
+    let allTransactions = [];
+    for (const member of members) {
+      let week = 1;
+      let hasMore = true;
+      while (hasMore) {
+        let tx;
+        try {
+          tx = await contract.transactions(member, week);
+        } catch (e) {
+          hasMore = false;
+          break;
+        }
+        if (tx && tx.amount && tx.amount > 0) {
+          allTransactions.push({
+            id: `tx-${adasheAddress.slice(0, 8)}-${member.slice(0, 8)}-${week}`,
+            type: tx.txType === 0 ? "contribution" : "withdrawal",
+            from:
+              tx.txType === 0 ? member : `Adashe ${adasheAddress.slice(0, 6)}`,
+            to:
+              tx.txType === 0 ? `Adashe ${adasheAddress.slice(0, 6)}` : member,
+            amount: Number(tx.amount) / 1e6, // Assuming USDC 6 decimals
+            date: tx.timestamp
+              ? new Date(Number(tx.timestamp) * 1000)
+              : undefined,
+            week: `Week ${week}`,
+            user: member,
+            address: member,
+            contractAddress: adasheAddress,
+            transactionId: `${adasheAddress.slice(
+              0,
+              10
+            )}...${adasheAddress.slice(-8)}-T${week}-${member.slice(0, 6)}`,
+          });
+          week++;
+        } else {
+          hasMore = false;
+        }
+      }
+    }
+    // Sort by date (newest first)
+    allTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+    return allTransactions;
+  } catch (error) {
+    return [];
+  }
+}
+
+/**
+ * Get Adashe transaction history for a user using getUserTransactionHistory(address user)
+ * @param {object} embeddedWallet - Privy embedded wallet object
+ * @param {string} adasheAddress - Address of the Adashe contract
+ * @returns {Promise<Array>} - Array of user Adashe transactions
+ */
+export async function getUserAdasheTransactionHistory(
+  embeddedWallet,
+  adasheAddress
+) {
+  try {
+    if (!embeddedWallet || !adasheAddress) {
+      return [];
+    }
+    const provider = await embeddedWallet.getEthereumProvider();
+    const ethersProvider = new BrowserProvider(provider);
+    const signer = await ethersProvider.getSigner();
+    const userAddress = await signer.getAddress();
+    const contract = new Contract(adasheAddress, ADASHE_CONTRACT_ABI, signer);
+
+    // Call the ABI function getUserTransactionHistory(address user)
+    const txs = await contract.getUserTransactionHistory(userAddress);
+    if (!Array.isArray(txs)) return [];
+    // Format each transaction
+    return txs.map((tx, idx) => ({
+      id: `adashe-user-${adasheAddress.slice(0, 8)}-${idx}`,
+      type: tx.txType === 0 ? "contribution" : "withdrawal",
+      from: tx.txType === 0 ? "Wallet" : `Adashe ${adasheAddress.slice(0, 6)}`,
+      to: tx.txType === 0 ? `Adashe ${adasheAddress.slice(0, 6)}` : "Wallet",
+      amount: Number(tx.amount) / 1e6, // Assuming USDC 6 decimals
+      date: tx.timestamp ? new Date(Number(tx.timestamp) * 1000) : undefined,
+      week: tx.week ? `Week ${tx.week}` : undefined,
+      user: "You",
+      address: `${userAddress.slice(0, 10)}...${userAddress.slice(-8)}`,
+      contractAddress: adasheAddress,
+      transactionId:
+        tx.transactionId ||
+        `${adasheAddress.slice(0, 10)}...${adasheAddress.slice(-8)}-U${idx}`,
+    }));
   } catch (error) {
     return [];
   }

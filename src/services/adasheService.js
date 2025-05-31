@@ -1,4 +1,10 @@
 import api from "./api";
+import { useSelector } from "react-redux";
+import { getAllAdasheAddresses } from "./blockchain/useAdasheFactory";
+import { BrowserProvider, Contract } from "ethers";
+import adashe from "../ABI/Adashe.json";
+
+const ADASHE_CONTRACT_ABI = adashe.abi;
 
 /**
  * Service for managing Adashe (group savings) functionality
@@ -114,6 +120,47 @@ const adasheService = {
       );
     }
   },
+
+  /**
+   * Get the total pool amount the user will get from all Adashe circles they are in
+   * @param {object} embeddedWallet - Privy embedded wallet object
+   * @returns {Promise<number>} - Total pool amount
+   */
+  getAdasheTotalPool: async (embeddedWallet) => {
+    if (!embeddedWallet) return 0;
+    try {
+      const adasheAddresses = await getAllAdasheAddresses(embeddedWallet);
+      if (!adasheAddresses || adasheAddresses.length === 0) return 0;
+      const provider = await embeddedWallet.getEthereumProvider();
+      const ethersProvider = new BrowserProvider(provider);
+      const signer = await ethersProvider.getSigner();
+      let total = 0;
+      for (const adasheAddress of adasheAddresses) {
+        const contract = new Contract(
+          adasheAddress,
+          ADASHE_CONTRACT_ABI,
+          signer
+        );
+        try {
+          const [members, adasheDetails] = await Promise.all([
+            contract.getMembers(),
+            contract.adashe(),
+          ]);
+          const membersCount = members.length;
+          const weeklyAmount = Number(adasheDetails.weeklyContribution) / 1e6; // USDC 6 decimals
+          total += membersCount * weeklyAmount;
+        } catch (e) {
+          // skip this adashe if error
+        }
+      }
+      return total;
+    } catch (e) {
+      return 0;
+    }
+  },
 };
+
+// Export getAdasheTotalPool as a named export for dashboardSlice.js
+export const getAdasheTotalPool = adasheService.getAdasheTotalPool;
 
 export default adasheService;

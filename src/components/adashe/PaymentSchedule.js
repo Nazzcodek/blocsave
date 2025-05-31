@@ -10,6 +10,7 @@ import Image from "next/image";
 import {
   getDetailedMembers,
   getCircleContributionProgress,
+  getUserWeeksInCircle,
 } from "@/services/blockchain/useAdashe";
 
 const PaymentSchedule = ({ circle }) => {
@@ -25,6 +26,7 @@ const PaymentSchedule = ({ circle }) => {
   const [loading, setLoading] = useState(true);
   const [contributionProgress, setContributionProgress] = useState(null);
   const [progressLoading, setProgressLoading] = useState(false);
+  const [userWeeks, setUserWeeks] = useState([]);
 
   const embeddedWallet = wallets?.find(
     (wallet) => wallet.walletClientType === "privy"
@@ -103,6 +105,23 @@ const PaymentSchedule = ({ circle }) => {
       }
     };
     fetchProgress();
+  }, [embeddedWallet, circle?.contractAddress]);
+
+  // Fetch randomized user weeks for the circle
+  useEffect(() => {
+    const fetchUserWeeks = async () => {
+      if (!embeddedWallet || !circle?.contractAddress) return;
+      try {
+        const weeks = await getUserWeeksInCircle(
+          embeddedWallet,
+          circle.contractAddress
+        );
+        setUserWeeks(weeks);
+      } catch (e) {
+        setUserWeeks([]);
+      }
+    };
+    fetchUserWeeks();
   }, [embeddedWallet, circle?.contractAddress]);
 
   // Harmonize week numbering: blockchain week 0 is user week 1
@@ -515,6 +534,12 @@ const PaymentSchedule = ({ circle }) => {
 
       <div className="space-y-4">
         {circle.paymentSchedule.map((round) => {
+          // Find the address for this round from userWeeks
+          const weekInfo = userWeeks.find((w) => w.week === round.round);
+          const isUserWeek =
+            weekInfo &&
+            userAddress &&
+            weekInfo.address.toLowerCase() === userAddress;
           const recipientInfo = getRecipientDisplayInfo(round.recipient.id);
           // Use real-time progress for the active round
           const isActiveRound =
@@ -531,7 +556,7 @@ const PaymentSchedule = ({ circle }) => {
           const canWithdraw =
             isActiveRound &&
             contributedCount >= totalMembers &&
-            recipientInfo.isCurrentUser &&
+            isUserWeek &&
             !processingWithdrawal &&
             authenticated &&
             isCircleStarted(contributionProgress?.week); // Only disable if week is undefined/null
@@ -568,7 +593,8 @@ const PaymentSchedule = ({ circle }) => {
                   </p>
                 </div>
 
-                {round.status === "active" && recipientInfo.isCurrentUser && (
+                {/* Only show withdraw button for the user's week */}
+                {round.status === "active" && isUserWeek && (
                   <button
                     className={`flex items-center justify-center rounded-md px-2 sm:px-3 py-1 text-xs sm:text-sm transition-all duration-200 ${
                       canWithdraw

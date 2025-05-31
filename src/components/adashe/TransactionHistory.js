@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useSelector } from "react-redux";
-import { getAllAdasheTransactionHistory } from "../../services/blockchain/useAdasheHistory";
 import Image from "next/image";
 
 const TransactionHistory = ({ circleId = null }) => {
@@ -26,10 +25,10 @@ const TransactionHistory = ({ circleId = null }) => {
         let historyData = [];
         if (circleId) {
           // For a group, fetch all contributions and withdrawals from the contract
-          const { getAdasheGroupTransactionEvents } = await import(
+          const { getAdasheGroupTransactionHistory } = await import(
             "../../services/blockchain/useAdasheHistory"
           );
-          historyData = await getAdasheGroupTransactionEvents(
+          historyData = await getAdasheGroupTransactionHistory(
             embeddedWallet, // can be null/undefined for group
             circleId
           );
@@ -87,7 +86,12 @@ const TransactionHistory = ({ circleId = null }) => {
       // Normalize type for display
       let displayType = tx.type;
       if (displayType === "contribution") displayType = "Contribute";
-      if (displayType === "payout" || displayType === "withdrawal" || displayType === "withdraw") displayType = "Withdraw";
+      if (
+        displayType === "payout" ||
+        displayType === "withdrawal" ||
+        displayType === "withdraw"
+      )
+        displayType = "Withdraw";
       return {
         ...tx,
         week,
@@ -252,7 +256,8 @@ const TransactionHistory = ({ circleId = null }) => {
                         : "text-gray-500"
                     }`}
                   >
-                    {transaction.amount > 0 ? "+" : "-"}${Math.abs(transaction.amount).toFixed(2)}
+                    {transaction.amount > 0 ? "+" : "-"}$
+                    {Math.abs(transaction.amount).toFixed(2)}
                   </td>
                 </tr>
               ))}

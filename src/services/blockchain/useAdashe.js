@@ -805,3 +805,53 @@ export async function getCircleContributionProgress(
     memberStatuses,
   };
 }
+
+/**
+ * Get the week number assigned to each user in the Adashe circle using getRandomizedMembers
+ * @param {Object} embeddedWallet - User's embedded wallet from Privy
+ * @param {string} adasheAddress - Address of the Adashe contract
+ * @returns {Promise<Array<{address: string, week: number}>>} Array of user addresses and their assigned week
+ */
+export async function getUserWeeksInCircle(embeddedWallet, adasheAddress) {
+  if (!embeddedWallet) throw new Error("Embedded wallet not found");
+  const provider = await embeddedWallet.getEthereumProvider();
+  const ethersProvider = new BrowserProvider(provider);
+  const signer = await ethersProvider.getSigner();
+  const contract = new Contract(adasheAddress, ADASHE_CONTRACT_ABI, signer);
+  const randomizedMembers = await contract.getRandomizedMembers();
+  return randomizedMembers.map((address, idx) => ({ address, week: idx + 1 }));
+}
+
+/**
+ * Get all group transaction history (contributions and withdrawals) from the blockchain
+ * @param {Object} embeddedWallet - User's embedded wallet from Privy (can be null for public group history)
+ * @param {string} adasheAddress - Address of the Adashe contract
+ * @returns {Promise<Array>} Array of group transactions
+ */
+export async function getGroupTransactionHistory(
+  embeddedWallet,
+  adasheAddress
+) {
+  const { getAdasheGroupTransactionEvents } = await import(
+    "./useAdasheHistory"
+  );
+  return getAdasheGroupTransactionEvents(embeddedWallet, adasheAddress);
+}
+
+/**
+ * Get all user transaction history (contributions and withdrawals) for a specific Adashe circle
+ * @param {Object} embeddedWallet - User's embedded wallet from Privy
+ * @param {string} adasheAddress - Address of the Adashe contract
+ * @returns {Promise<Array>} Array of user transactions
+ */
+export async function getUserTransactionHistory(embeddedWallet, adasheAddress) {
+  const { getAdasheContributionHistory, getAdasheWithdrawalHistory } =
+    await import("./useAdasheHistory");
+  const [contributions, withdrawals] = await Promise.all([
+    getAdasheContributionHistory(embeddedWallet, adasheAddress),
+    getAdasheWithdrawalHistory(embeddedWallet, adasheAddress),
+  ]);
+  return [...contributions, ...withdrawals].sort(
+    (a, b) => new Date(b.date) - new Date(a.date)
+  );
+}

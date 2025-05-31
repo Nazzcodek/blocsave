@@ -7,10 +7,6 @@ const BalanceCard = () => {
 
   // Calculate active circles and total expected payouts
   const activeCirclesData = circles.filter((circle) => {
-    // A circle is considered active if:
-    // - It has members
-    // - Current round is less than or equal to total rounds (not completed)
-    // - Circle is marked as active
     return (
       circle.members &&
       circle.members.length > 0 &&
